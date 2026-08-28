@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyPC Script Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#62B134; --green-dk:#4d8c29; --green-soft:rgba(98,177,52,.12);
+  --bg:#ffffff; --surface:#f6f7f5; --surface-2:#eceee9; --ink:#0b0b0b;
+  --ink-2:#3d423b; --ink-3:#6b7166; --line:#dcded8;
+  --thead-bg:#0b0b0b; --thead-fg:#ffffff;
+  --red:#c0392b; --amber:#b8860b; --blue:#2c6b9e;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0b0b; --surface:#151714; --surface-2:#1e211c; --ink:#f2f4f0;
+    --ink-2:#c8ccc3; --ink-3:#8f958a; --line:#2c302a;
+    --thead-bg:#252a22; --thead-fg:#f2f4f0;
+    --red:#ff7060; --amber:#e6b422; --blue:#6fb3e8;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0b0b; --surface:#151714; --surface-2:#1e211c; --ink:#f2f4f0;
+  --ink-2:#c8ccc3; --ink-3:#8f958a; --line:#2c302a;
+  --thead-bg:#252a22; --thead-fg:#f2f4f0;
+  --red:#ff7060; --amber:#e6b422; --blue:#6fb3e8;
+}
+*{box-sizing:border-box;}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:'Open Sans',sans-serif; line-height:1.65;}
+.wrap{max-width:1000px; margin:0 auto; padding:0 20px 60px;}
+header.hero{background:linear-gradient(135deg,var(--green) 0%, var(--green-dk) 100%); color:#fff; padding:36px 20px 28px; position:relative;}
+header.hero .inner{max-width:1000px; margin:0 auto;}
+header.hero h1{margin:0 0 6px; font-size:26px; font-weight:700;}
+header.hero p{margin:0; font-size:14px; opacity:.92;}
+.toggle{position:absolute; top:24px; right:20px; background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.5); border-radius:20px; padding:6px 14px; font-size:13px; cursor:pointer; font-family:inherit;}
+.toggle:hover{background:rgba(255,255,255,.3);}
+
+.btn{background:var(--green); color:#fff; border:none; padding:8px 16px; border-radius:6px; font-size:14px; cursor:pointer; font-family:inherit; font-weight:600;}
+.btn:hover{background:var(--green-dk);}
+.btn.secondary{background:var(--surface-2); color:var(--ink); border:1px solid var(--line);}
+.status-line{font-size:12px; color:var(--ink-3); margin:4px 0 0; text-align:right;}
+.refresh-row{display:flex; justify-content:flex-end; margin-top:16px;}
+
+.progress-box{background:var(--green-soft); border-left:4px solid var(--green); border-radius:4px; padding:14px 20px; margin:20px 0; font-size:14px;}
+.progress-bar-track{background:var(--surface-2); border-radius:8px; height:10px; margin-top:8px; overflow:hidden;}
+.progress-bar-fill{background:var(--green); height:100%; border-radius:8px; transition:width .4s ease;}
+
+.controls{display:flex; gap:10px; flex-wrap:wrap; margin:20px 0; align-items:center;}
+.controls select, .controls input[type=search]{padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); font-family:inherit; font-size:14px;}
+.controls input[type=search]{flex:1; min-width:180px;}
+
+h2.pillar-head{border-bottom:3px solid var(--green); padding-bottom:8px; margin-top:44px; font-size:21px; display:flex; justify-content:space-between; align-items:center;}
+.pillar-count{font-size:13px; font-weight:400; color:var(--ink-3);}
+
+.script-card{background:var(--surface); border:1px solid var(--line); border-radius:8px; margin:14px 0; overflow:hidden;}
+.script-card summary{cursor:pointer; padding:14px 18px; font-weight:700; font-size:15px; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--surface-2);}
+.script-card summary::-webkit-details-marker{display:none;}
+.script-card summary .plus{font-size:20px; color:var(--green-dk); font-weight:700; flex-shrink:0;}
+.script-card[open] summary .plus::before{content:"−";}
+.script-card summary .plus::before{content:"+";}
+.summary-title{flex:1;}
+.summary-meta{font-size:12px; font-weight:400; color:var(--ink-3); white-space:nowrap;}
+.script-card .body{padding:4px 22px 20px;}
+h3.seg{font-size:13px; text-transform:uppercase; letter-spacing:.03em; color:var(--green-dk); margin:18px 0 6px; border-top:1px solid var(--line); padding-top:12px;}
+.script-card .body > h3.seg:first-of-type{border-top:none; padding-top:0;}
+p.segtext{margin:0 0 4px; font-size:14.5px; white-space:pre-wrap;}
+.tag{display:inline-block; background:var(--green-soft); color:var(--green-dk); padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700; text-transform:uppercase;}
+.tag.status-draft{background:rgba(184,134,11,.15); color:var(--amber);}
+.tag.status-approved{background:var(--green-soft); color:var(--green-dk);}
+.tag.status-published{background:rgba(44,107,158,.15); color:var(--blue);}
+.thumb-box{background:var(--surface-2); border-radius:6px; padding:12px 16px; font-size:13.5px; margin-top:6px;}
+.thumb-box dt{font-weight:700; color:var(--green-dk); margin-top:6px;}
+.thumb-box dt:first-child{margin-top:0;}
+.thumb-box dd{margin:2px 0 0;}
+.caption-box{background:var(--surface-2); border-radius:4px; padding:10px 14px; font-size:13.5px; font-style:italic;}
+
+.empty-state{text-align:center; padding:40px 20px; color:var(--ink-3); font-size:14px;}
+footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-3);}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <button class="toggle" onclick="tt()">Light / Dark</button>
+  <div class="inner">
+    <h1>EasyPC Script Library</h1>
+    <p id="subtitle">Mga na-approve at na-publish na script, live mula sa Google Sheet</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="refresh-row">
+    <button class="btn secondary" onclick="loadData()">I-refresh ngayon</button>
+  </div>
+  <div class="status-line" id="statusLine">&nbsp;</div>
+
+  <div class="progress-box" id="progressBox" style="display:none;">
+    <div><strong id="progressText"></strong></div>
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="controls" id="controls" style="display:none;">
+    <input type="search" id="searchBox" placeholder="Maghanap ng topic..." oninput="render()">
+    <select id="statusFilter" onchange="render()">
+      <option value="approved_published">Approved + Published lang</option>
+      <option value="all">Lahat (kasama Draft)</option>
+      <option value="Draft">Draft lang</option>
+      <option value="Approved">Approved lang</option>
+      <option value="Published">Published lang</option>
+    </select>
+  </div>
+
+  <div id="content"></div>
+
+  <footer>
+    Kumokonekta sa Google Sheet mo gamit ang Apps Script Web App. I-refresh ang page o i-click ang "I-refresh ngayon" para makita ang bagong ipinasok na rows.
+  </footer>
+
+</div>
+
+<script>
+  const MONTHLY_TARGET = 40;
+  // Embedded backend endpoint — not shown in the UI.
+  const API_URL = "https://script.google.com/macros/s/AKfycbw0BE344Ds8OMnaK5EZ3zbRS_ToYGqf0EELwW_UkerTxvq2AFhjw_xlhQJEVdmbM3ZF3A/exec";
+  let allRows = [];
+
+  function tt(){
+    var r=document.documentElement;
+    var cur=r.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    r.setAttribute('data-theme',cur==='dark'?'light':'dark');
+  }
+
+  function setStatus(msg, isError){
+    const el = document.getElementById('statusLine');
+    el.textContent = msg;
+    el.style.color = isError ? 'var(--red)' : 'var(--ink-3)';
+  }
+
+  async function loadData(){
+    setStatus('Kinukuha ang data...');
+    try {
+      const res = await fetch(API_URL, { cache: 'no-store' });
+      const text = await res.text();
+      const json = JSON.parse(text);
+      if (json.error) { setStatus('Error mula sa Apps Script: ' + json.error, true); return; }
+      allRows = json;
+      setStatus('Na-load: ' + allRows.length + ' script(s). Huling na-refresh: ' + new Date().toLocaleTimeString());
+      document.getElementById('controls').style.display = 'flex';
+      render();
+    } catch (err) {
+      setStatus('Hindi makonekta sa data source. Subukan mong i-refresh. (' + err.message + ')', true);
+    }
+  }
+
+  function statusClass(status){
+    const s = (status || '').toLowerCase();
+    if (s === 'draft') return 'status-draft';
+    if (s === 'approved') return 'status-approved';
+    if (s === 'published') return 'status-published';
+    return '';
+  }
+
+  function matchesFilter(row, filterVal){
+    const s = (row.Status || '').trim();
+    if (filterVal === 'all') return true;
+    if (filterVal === 'approved_published') return s === 'Approved' || s === 'Published';
+    return s === filterVal;
+  }
+
+  function escapeHtml(str){
+    return (str || '').toString()
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function render(){
+    const search = document.getElementById('searchBox').value.trim().toLowerCase();
+    const filterVal = document.getElementById('statusFilter').value;
+
+    const filtered = allRows.filter(r => matchesFilter(r, filterVal) &&
+      (!search || (r.Topic || '').toLowerCase().includes(search) || (r.Pillar || '').toLowerCase().includes(search)));
+
+    // progress vs monthly target counts approved + published regardless of search/filter
+    const progressCount = allRows.filter(r => (r.Status === 'Approved' || r.Status === 'Published')).length;
+    const pct = Math.min(100, Math.round((progressCount / MONTHLY_TARGET) * 100));
+    document.getElementById('progressBox').style.display = 'block';
+    document.getElementById('progressText').textContent = progressCount + ' / ' + MONTHLY_TARGET + ' na script para sa buwan (Approved + Published)';
+    document.getElementById('progressFill').style.width = pct + '%';
+
+    const byPillar = {};
+    filtered.forEach(r => {
+      const p = r.Pillar || 'Walang Pillar';
+      if (!byPillar[p]) byPillar[p] = [];
+      byPillar[p].push(r);
+    });
+
+    const container = document.getElementById('content');
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="empty-state">Walang script na tumugma. Subukan mong palitan ang filter o ang search.</div>';
+      return;
+    }
+
+    let html = '';
+    Object.keys(byPillar).sort().forEach(pillar => {
+      const rows = byPillar[pillar];
+      html += `<h2 class="pillar-head">${escapeHtml(pillar)} <span class="pillar-count">${rows.length} script</span></h2>`;
+      rows.forEach((r, idx) => {
+        html += `
+        <details class="script-card">
+          <summary>
+            <span class="plus"></span>
+            <span class="summary-title">${escapeHtml(r.Topic)}</span>
+            <span class="summary-meta">
+              <span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span>
+              &nbsp; ${escapeHtml(r['Date Added'] || '')}
+            </span>
+          </summary>
+          <div class="body">
+            ${r.Hook ? `<h3 class="seg">Hook</h3><p class="segtext">${escapeHtml(r.Hook)}</p>` : ''}
+            ${r.Problem ? `<h3 class="seg">Problem</h3><p class="segtext">${escapeHtml(r.Problem)}</p>` : ''}
+            ${r.Solution ? `<h3 class="seg">Solution</h3><p class="segtext">${escapeHtml(r.Solution)}</p>` : ''}
+            ${r['Outro CTA'] ? `<h3 class="seg">Outro / CTA</h3><p class="segtext">${escapeHtml(r['Outro CTA'])}</p>` : ''}
+            ${r.Shotlist ? `<h3 class="seg">Shotlist</h3><p class="segtext">${escapeHtml(r.Shotlist)}</p>` : ''}
+            ${r['B-Roll Prompts'] ? `<h3 class="seg">B-Roll Prompts</h3><p class="segtext">${escapeHtml(r['B-Roll Prompts'])}</p>` : ''}
+            ${r.Caption ? `<h3 class="seg">Caption</h3><div class="caption-box">${escapeHtml(r.Caption)}</div>` : ''}
+            ${(r['Thumb Main Visual'] || r['Thumb Background'] || r['Thumb Text Overlay'] || r['Thumb Logo']) ? `
+            <h3 class="seg">Thumbnail Asset</h3>
+            <dl class="thumb-box">
+              ${r['Thumb Main Visual'] ? `<dt>Main Visual</dt><dd>${escapeHtml(r['Thumb Main Visual'])}</dd>` : ''}
+              ${r['Thumb Background'] ? `<dt>Background</dt><dd>${escapeHtml(r['Thumb Background'])}</dd>` : ''}
+              ${r['Thumb Text Overlay'] ? `<dt>Text Overlay</dt><dd>${escapeHtml(r['Thumb Text Overlay'])}</dd>` : ''}
+              ${r['Thumb Logo'] ? `<dt>Brand Logo</dt><dd>${escapeHtml(r['Thumb Logo'])}</dd>` : ''}
+            </dl>` : ''}
+          </div>
+        </details>`;
+      });
+    });
+    container.innerHTML = html;
+  }
+
+  // Auto-fetch immediately on page load — no setup step needed.
+  window.addEventListener('DOMContentLoaded', loadData);
+</script>
+
+</body>
+</html>
