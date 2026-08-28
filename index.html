@@ -6,128 +6,329 @@
 <title>EasyPC Script Library</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --green:#62B134; --green-dk:#4d8c29; --green-soft:rgba(98,177,52,.12);
-  --bg:#ffffff; --surface:#f6f7f5; --surface-2:#eceee9; --ink:#0b0b0b;
-  --ink-2:#3d423b; --ink-3:#6b7166; --line:#dcded8;
-  --thead-bg:#0b0b0b; --thead-fg:#ffffff;
-  --red:#c0392b; --amber:#b8860b; --blue:#2c6b9e;
+  --green:#62B134; --green-dk:#4d8c29; --green-deep:#345c1e; --green-soft:rgba(98,177,52,.10);
+  --bg:#ffffff; --surface:#f6f7f5; --surface-2:#eceee9; --surface-3:#e4e6df;
+  --ink:#0b0b0b; --ink-2:#3d423b; --ink-3:#6b7166;
+  --line:#dcded8; --line-strong:#c7cabf;
+  --amber:#9a6b0c; --blue:#2c6b9e; --red:#b3402f;
+  --seg-hook:#62B134; --seg-problem:#b8632b; --seg-solution:#6b7166; --seg-outro:#2c6b9e;
+  --font-ui:'Open Sans',sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --radius:10px;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#0b0b0b; --surface:#151714; --surface-2:#1e211c; --ink:#f2f4f0;
-    --ink-2:#c8ccc3; --ink-3:#8f958a; --line:#2c302a;
-    --thead-bg:#252a22; --thead-fg:#f2f4f0;
-    --red:#ff7060; --amber:#e6b422; --blue:#6fb3e8;
+    --bg:#0b0c0a; --surface:#141613; --surface-2:#1c1f1a; --surface-3:#22261f;
+    --ink:#f2f4f0; --ink-2:#c8ccc3; --ink-3:#8f958a;
+    --line:#2b2f28; --line-strong:#3a3f35;
+    --amber:#e6b422; --blue:#6fb3e8; --red:#ff8a76;
+    --seg-hook:#62B134; --seg-problem:#e08a52; --seg-solution:#9aa094; --seg-outro:#6fb3e8;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0b0b0b; --surface:#151714; --surface-2:#1e211c; --ink:#f2f4f0;
-  --ink-2:#c8ccc3; --ink-3:#8f958a; --line:#2c302a;
-  --thead-bg:#252a22; --thead-fg:#f2f4f0;
-  --red:#ff7060; --amber:#e6b422; --blue:#6fb3e8;
+  --bg:#0b0c0a; --surface:#141613; --surface-2:#1c1f1a; --surface-3:#22261f;
+  --ink:#f2f4f0; --ink-2:#c8ccc3; --ink-3:#8f958a;
+  --line:#2b2f28; --line-strong:#3a3f35;
+  --amber:#e6b422; --blue:#6fb3e8; --red:#ff8a76;
+  --seg-hook:#62B134; --seg-problem:#e08a52; --seg-solution:#9aa094; --seg-outro:#6fb3e8;
 }
+
 *{box-sizing:border-box;}
-body{margin:0; background:var(--bg); color:var(--ink); font-family:'Open Sans',sans-serif; line-height:1.65;}
-.wrap{max-width:1000px; margin:0 auto; padding:0 20px 60px;}
-header.hero{background:linear-gradient(135deg,var(--green) 0%, var(--green-dk) 100%); color:#fff; padding:36px 20px 28px; position:relative;}
-header.hero .inner{max-width:1000px; margin:0 auto;}
-header.hero h1{margin:0 0 6px; font-size:26px; font-weight:700;}
-header.hero p{margin:0; font-size:14px; opacity:.92;}
-.toggle{position:absolute; top:24px; right:20px; background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.5); border-radius:20px; padding:6px 14px; font-size:13px; cursor:pointer; font-family:inherit;}
-.toggle:hover{background:rgba(255,255,255,.3);}
+html{-webkit-text-size-adjust:100%;}
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui); line-height:1.6; font-size:15px;}
+:focus-visible{outline:2px solid var(--green); outline-offset:2px; border-radius:4px;}
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
 
-.btn{background:var(--green); color:#fff; border:none; padding:8px 16px; border-radius:6px; font-size:14px; cursor:pointer; font-family:inherit; font-weight:600;}
-.btn:hover{background:var(--green-dk);}
-.btn.secondary{background:var(--surface-2); color:var(--ink); border:1px solid var(--line);}
-.status-line{font-size:12px; color:var(--ink-3); margin:4px 0 0; text-align:right;}
-.refresh-row{display:flex; justify-content:flex-end; margin-top:16px;}
+.mono{font-family:var(--font-mono);}
 
-.progress-box{background:var(--green-soft); border-left:4px solid var(--green); border-radius:4px; padding:14px 20px; margin:20px 0; font-size:14px;}
-.progress-bar-track{background:var(--surface-2); border-radius:8px; height:10px; margin-top:8px; overflow:hidden;}
-.progress-bar-fill{background:var(--green); height:100%; border-radius:8px; transition:width .4s ease;}
+/* ---------- topbar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  display:flex; align-items:center; gap:14px;
+  padding:14px 20px; background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+.topbar .mark{
+  width:34px; height:34px; border-radius:8px; flex-shrink:0;
+  background:linear-gradient(135deg,var(--green) 0%, var(--green-deep) 100%);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:800; font-size:15px; font-family:var(--font-mono);
+}
+.topbar .titles{flex:1; min-width:0;}
+.topbar h1{margin:0; font-size:16px; font-weight:800; letter-spacing:-.01em;}
+.topbar .sub{margin:0; font-size:11.5px; color:var(--ink-3); font-family:var(--font-mono);}
+.topbar .actions{display:flex; align-items:center; gap:8px;}
+.iconbtn{
+  display:flex; align-items:center; gap:6px;
+  background:var(--surface-2); color:var(--ink-2); border:1px solid var(--line);
+  border-radius:8px; padding:7px 12px; font-size:12.5px; font-weight:600;
+  cursor:pointer; font-family:var(--font-ui);
+}
+.iconbtn:hover{background:var(--surface-3); color:var(--ink);}
 
-.controls{display:flex; gap:10px; flex-wrap:wrap; margin:20px 0; align-items:center;}
-.controls select, .controls input[type=search]{padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--ink); font-family:inherit; font-size:14px;}
-.controls input[type=search]{flex:1; min-width:180px;}
+/* ---------- layout ---------- */
+.layout{display:flex; align-items:flex-start; max-width:1280px; margin:0 auto;}
+.sidebar{
+  width:250px; flex-shrink:0; position:sticky; top:65px;
+  height:calc(100vh - 65px); overflow-y:auto;
+  padding:18px 14px 24px; border-right:1px solid var(--line);
+}
+.main{flex:1; min-width:0; padding:20px 24px 60px;}
 
-h2.pillar-head{border-bottom:3px solid var(--green); padding-bottom:8px; margin-top:44px; font-size:21px; display:flex; justify-content:space-between; align-items:center;}
-.pillar-count{font-size:13px; font-weight:400; color:var(--ink-3);}
+.ring-card{
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px; margin-bottom:18px;
+}
+.ring-card svg{flex-shrink:0; transform:rotate(-90deg);}
+.ring-card .ring-fill{transition:stroke-dashoffset .5s ease;}
+.ring-num{font-family:var(--font-mono); font-size:19px; font-weight:700;}
+.ring-label{font-size:11px; color:var(--ink-3); line-height:1.4; margin-top:2px;}
 
-.script-card{background:var(--surface); border:1px solid var(--line); border-radius:8px; margin:14px 0; overflow:hidden;}
-.script-card summary{cursor:pointer; padding:14px 18px; font-weight:700; font-size:15px; list-style:none; display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--surface-2);}
+.side-search{
+  width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:8px;
+  background:var(--surface); color:var(--ink); font-family:var(--font-ui); font-size:13px;
+  margin-bottom:12px;
+}
+.pill-row{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:18px;}
+.pill{
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+  border-radius:20px; padding:5px 11px; font-size:11.5px; font-weight:600;
+  cursor:pointer; font-family:var(--font-ui);
+}
+.pill:hover{border-color:var(--line-strong);}
+.pill.active{background:var(--green); border-color:var(--green); color:#fff;}
+
+.side-heading{
+  font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3);
+  font-family:var(--font-mono); margin:0 0 8px; padding-top:2px;
+}
+.pillar-list{display:flex; flex-direction:column; gap:3px; margin-bottom:18px;}
+.pillar-row{
+  display:flex; flex-direction:column; gap:5px; text-align:left;
+  background:transparent; border:1px solid transparent; border-radius:8px;
+  padding:7px 9px; cursor:pointer; font-family:var(--font-ui);
+}
+.pillar-row:hover{background:var(--surface);}
+.pillar-row.active{background:var(--green-soft); border-color:var(--green);}
+.pillar-row .row1{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
+.pillar-row .pname{font-size:12.5px; font-weight:700; color:var(--ink);}
+.pillar-row .pcount{font-size:10.5px; color:var(--ink-3); font-family:var(--font-mono); flex-shrink:0;}
+.pillar-row .pbar{height:4px; border-radius:3px; background:var(--surface-3); overflow:hidden;}
+.pillar-row .pbar-fill{height:100%; background:var(--green); border-radius:3px;}
+
+.legend{display:flex; flex-direction:column; gap:6px; padding-top:10px; border-top:1px solid var(--line);}
+.legend .item{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--ink-3);}
+.legend .dot{width:8px; height:8px; border-radius:2px; flex-shrink:0;}
+
+/* ---------- status line ---------- */
+.status-line{font-size:12px; color:var(--ink-3); margin:0 0 16px; font-family:var(--font-mono);}
+.status-line.error{color:var(--red);}
+.empty-state{text-align:center; padding:60px 20px; color:var(--ink-3); font-size:14px;}
+
+/* ---------- pillar section ---------- */
+h2.pillar-head{
+  display:flex; justify-content:space-between; align-items:baseline; gap:12px;
+  border-bottom:2px solid var(--ink); padding-bottom:9px; margin:34px 0 16px; font-size:19px; font-weight:800;
+}
+h2.pillar-head:first-child{margin-top:0;}
+.pillar-count-tag{font-size:12px; font-weight:600; color:var(--ink-3); font-family:var(--font-mono);}
+
+/* ---------- script card ---------- */
+.script-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  margin:12px 0; overflow:hidden;
+}
+.script-card summary{
+  cursor:pointer; padding:14px 16px 12px; list-style:none;
+  display:flex; flex-direction:column; gap:9px;
+}
 .script-card summary::-webkit-details-marker{display:none;}
-.script-card summary .plus{font-size:20px; color:var(--green-dk); font-weight:700; flex-shrink:0;}
-.script-card[open] summary .plus::before{content:"−";}
-.script-card summary .plus::before{content:"+";}
-.summary-title{flex:1;}
-.summary-meta{font-size:12px; font-weight:400; color:var(--ink-3); white-space:nowrap;}
-.script-card .body{padding:4px 22px 20px;}
-h3.seg{font-size:13px; text-transform:uppercase; letter-spacing:.03em; color:var(--green-dk); margin:18px 0 6px; border-top:1px solid var(--line); padding-top:12px;}
-.script-card .body > h3.seg:first-of-type{border-top:none; padding-top:0;}
-p.segtext{margin:0 0 4px; font-size:14.5px; white-space:pre-wrap;}
-.tag{display:inline-block; background:var(--green-soft); color:var(--green-dk); padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700; text-transform:uppercase;}
-.tag.status-draft{background:rgba(184,134,11,.15); color:var(--amber);}
-.tag.status-approved{background:var(--green-soft); color:var(--green-dk);}
-.tag.status-published{background:rgba(44,107,158,.15); color:var(--blue);}
-.thumb-box{background:var(--surface-2); border-radius:6px; padding:12px 16px; font-size:13.5px; margin-top:6px;}
-.thumb-box dt{font-weight:700; color:var(--green-dk); margin-top:6px;}
-.thumb-box dt:first-child{margin-top:0;}
-.thumb-box dd{margin:2px 0 0;}
-.caption-box{background:var(--surface-2); border-radius:4px; padding:10px 14px; font-size:13.5px; font-style:italic;}
+.summary-top{display:flex; justify-content:space-between; align-items:flex-start; gap:12px;}
+.summary-title{font-weight:700; font-size:14.5px; flex:1;}
+.summary-meta{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+.plus{font-size:16px; color:var(--ink-3); font-weight:700; flex-shrink:0; font-family:var(--font-mono);}
+.script-card[open] .plus::before{content:"\2212";}
+.plus::before{content:"+";}
 
-.empty-state{text-align:center; padding:40px 20px; color:var(--ink-3); font-size:14px;}
-footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font-size:13px; color:var(--ink-3);}
+.tag{
+  display:inline-block; padding:2px 9px; border-radius:20px; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.03em; font-family:var(--font-mono);
+}
+.tag.status-draft{background:rgba(154,107,12,.14); color:var(--amber);}
+.tag.status-approved{background:var(--green-soft); color:var(--green-dk);}
+.tag.status-published{background:rgba(44,107,158,.14); color:var(--blue);}
+.date-tag{font-size:10.5px; color:var(--ink-3); font-family:var(--font-mono); white-space:nowrap;}
+
+.script-card .body{padding:2px 16px 18px;}
+.phase{border-left:3px solid var(--line); border-radius:0 6px 6px 0; padding:9px 13px; margin:10px 0; background:var(--surface-2);}
+.phase.p-hook{border-color:var(--seg-hook);}
+.phase.p-problem{border-color:var(--seg-problem);}
+.phase.p-solution{border-color:var(--seg-solution);}
+.phase.p-outro{border-color:var(--seg-outro);}
+.phase-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px;}
+.phase-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--ink-2);}
+.phase-time{font-size:10px; color:var(--ink-3); font-family:var(--font-mono);}
+.phase-text{margin:0; font-size:13.5px; white-space:pre-wrap; color:var(--ink);}
+
+h3.seg{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-family:var(--font-mono); margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--line);}
+
+.shotlist{border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+.shot-row{display:flex; gap:12px; padding:6px 12px; font-size:13px;}
+.shot-row:nth-child(odd){background:var(--surface-2);}
+.shot-time{font-family:var(--font-mono); font-size:11.5px; color:var(--green-dk); flex-shrink:0; width:64px;}
+.shot-desc{color:var(--ink-2);}
+
+.broll-panel{border:1px solid var(--line); border-radius:8px; padding:10px 13px; margin-bottom:8px;}
+.broll-panel:last-child{margin-bottom:0;}
+.broll-label{font-family:var(--font-mono); font-size:10.5px; font-weight:700; color:var(--green-dk); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;}
+.broll-text{margin:0; font-size:13px; color:var(--ink-2);}
+
+.caption-box{background:var(--surface-2); border-radius:8px; padding:11px 14px; font-size:13.5px; font-style:italic; color:var(--ink-2);}
+
+.thumb-box{border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+.thumb-row{display:flex; gap:12px; padding:8px 13px; font-size:13px;}
+.thumb-row:nth-child(odd){background:var(--surface-2);}
+.thumb-key{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); width:100px; flex-shrink:0; text-transform:uppercase; letter-spacing:.03em; padding-top:1px;}
+.thumb-val{color:var(--ink);}
+
+footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:11.5px; color:var(--ink-3); font-family:var(--font-mono);}
+
+/* ---------- responsive ---------- */
+@media (max-width:860px){
+  .layout{flex-direction:column;}
+  .sidebar{
+    width:100%; height:auto; position:static; border-right:none; border-bottom:1px solid var(--line);
+    padding:14px 18px;
+  }
+  .ring-card{margin-bottom:12px;}
+  .pillar-list{flex-direction:row; flex-wrap:nowrap; overflow-x:auto; gap:8px; padding-bottom:4px;}
+  .pillar-row{flex-shrink:0; min-width:150px;}
+  .legend{flex-direction:row; flex-wrap:wrap; gap:12px;}
+  .main{padding:18px 18px 50px;}
+}
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <button class="toggle" onclick="tt()">Light / Dark</button>
-  <div class="inner">
+<header class="topbar">
+  <div class="mark">PC</div>
+  <div class="titles">
     <h1>EasyPC Script Library</h1>
-    <p id="subtitle">Mga na-approve at na-publish na script, live mula sa Google Sheet</p>
+    <p class="sub">tech it easy — content ops</p>
+  </div>
+  <div class="actions">
+    <button class="iconbtn" onclick="loadData()">&#8635; Refresh</button>
+    <button class="iconbtn" onclick="tt()">&#9788; / &#9789;</button>
   </div>
 </header>
 
-<div class="wrap">
+<div class="layout">
 
-  <div class="refresh-row">
-    <button class="btn secondary" onclick="loadData()">I-refresh ngayon</button>
-  </div>
-  <div class="status-line" id="statusLine">&nbsp;</div>
+  <aside class="sidebar">
+    <div class="ring-card">
+      <svg width="56" height="56" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="23" fill="none" stroke="var(--surface-3)" stroke-width="5"/>
+        <circle id="ringFill" class="ring-fill" cx="28" cy="28" r="23" fill="none" stroke="var(--green)" stroke-width="5" stroke-linecap="round" stroke-dasharray="144.5" stroke-dashoffset="144.5"/>
+      </svg>
+      <div>
+        <div class="ring-num" id="ringNum">0/40</div>
+        <div class="ring-label">Approved + Published<br>ngayong buwan</div>
+      </div>
+    </div>
 
-  <div class="progress-box" id="progressBox" style="display:none;">
-    <div><strong id="progressText"></strong></div>
-    <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
-  </div>
+    <input type="search" id="searchBox" class="side-search" placeholder="Maghanap ng topic..." oninput="render()">
 
-  <div class="controls" id="controls" style="display:none;">
-    <input type="search" id="searchBox" placeholder="Maghanap ng topic..." oninput="render()">
-    <select id="statusFilter" onchange="render()">
-      <option value="approved_published">Approved + Published lang</option>
-      <option value="all">Lahat (kasama Draft)</option>
-      <option value="Draft">Draft lang</option>
-      <option value="Approved">Approved lang</option>
-      <option value="Published">Published lang</option>
+    <p class="side-heading">Status</p>
+    <div class="pill-row" id="statusPills"></div>
+
+    <p class="side-heading">Buwan</p>
+    <select id="monthFilter" class="side-search" onchange="activeMonth = this.value; render();">
+      <option value="all">Lahat ng Buwan</option>
     </select>
-  </div>
 
-  <div id="content"></div>
+    <p class="side-heading">Pillar</p>
+    <div class="pillar-list" id="pillarList"></div>
 
-  <footer>
-    Kumokonekta sa Google Sheet mo gamit ang Apps Script Web App. I-refresh ang page o i-click ang "I-refresh ngayon" para makita ang bagong ipinasok na rows.
-  </footer>
+    <div class="legend">
+      <div class="item"><span class="dot" style="background:var(--seg-hook)"></span>Hook 0-3s</div>
+      <div class="item"><span class="dot" style="background:var(--seg-problem)"></span>Problem 3-10s</div>
+      <div class="item"><span class="dot" style="background:var(--seg-solution)"></span>Solution 10-40s</div>
+      <div class="item"><span class="dot" style="background:var(--seg-outro)"></span>Outro 40-50s</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <p class="status-line" id="statusLine">&nbsp;</p>
+    <div id="content"></div>
+  </main>
 
 </div>
 
+<footer class="foot">Kumokonekta sa Google Sheet gamit ang Apps Script Web App — i-click ang Refresh para makita ang bagong rows.</footer>
+
 <script>
   const MONTHLY_TARGET = 40;
+  // edit here if monthly per-pillar quotas change
+  const PILLAR_TARGETS = {
+    'Tech How-Tos': 5,
+    'Mistake Avoidance': 5,
+    'Useful Tools': 5,
+    'Pro-Insights': 6,
+    'Wow Factor Technology': 4,
+    'High End Build Features': 4,
+    'Customer Stories': 4,
+  };
+  const STATUS_OPTIONS = [
+    { val:'approved_published', label:'Approved+Published' },
+    { val:'all', label:'Lahat' },
+    { val:'Draft', label:'Draft' },
+    { val:'Approved', label:'Approved' },
+    { val:'Published', label:'Published' },
+  ];
   // Embedded backend endpoint — not shown in the UI.
   const API_URL = "https://script.google.com/macros/s/AKfycbw0BE344Ds8OMnaK5EZ3zbRS_ToYGqf0EELwW_UkerTxvq2AFhjw_xlhQJEVdmbM3ZF3A/exec";
+
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
   let allRows = [];
+  let activeStatus = 'approved_published';
+  let activePillar = 'all';
+  let activeMonth = 'all';
+
+  // Google Sheets serializes date cells as full UTC timestamps (e.g. a PH-local
+  // midnight becomes "...T16:00:00.000Z" the day before) — always read the date
+  // back out in Asia/Manila (UTC+8, no DST) so the calendar day is correct
+  // regardless of the viewer's browser timezone.
+  function parseDateParts(value){
+    if (!value) return null;
+    const str = String(value);
+    const plain = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (plain) return { year:+plain[1], month:+plain[2], day:+plain[3] };
+    const dt = new Date(str);
+    if (isNaN(dt.getTime())) return null;
+    const shifted = new Date(dt.getTime() + 8 * 60 * 60 * 1000);
+    return { year: shifted.getUTCFullYear(), month: shifted.getUTCMonth() + 1, day: shifted.getUTCDate() };
+  }
+
+  function formatDateDisplay(value){
+    const p = parseDateParts(value);
+    if (!p) return '';
+    return `${MONTH_NAMES[p.month - 1]} ${p.day}, ${p.year}`;
+  }
+
+  function monthKey(value){
+    const p = parseDateParts(value);
+    if (!p) return '';
+    return `${p.year}-${String(p.month).padStart(2, '0')}`;
+  }
+
+  function monthLabel(key){
+    const [y, m] = key.split('-');
+    return `${MONTH_NAMES[+m - 1]} ${y}`;
+  }
 
   function tt(){
     var r=document.documentElement;
@@ -139,7 +340,7 @@ footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font
   function setStatus(msg, isError){
     const el = document.getElementById('statusLine');
     el.textContent = msg;
-    el.style.color = isError ? 'var(--red)' : 'var(--ink-3)';
+    el.classList.toggle('error', !!isError);
   }
 
   async function loadData(){
@@ -151,7 +352,8 @@ footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font
       if (json.error) { setStatus('Error mula sa Apps Script: ' + json.error, true); return; }
       allRows = json;
       setStatus('Na-load: ' + allRows.length + ' script(s). Huling na-refresh: ' + new Date().toLocaleTimeString());
-      document.getElementById('controls').style.display = 'flex';
+      renderStatusPills();
+      renderMonthFilter();
       render();
     } catch (err) {
       setStatus('Hindi makonekta sa data source. Subukan mong i-refresh. (' + err.message + ')', true);
@@ -166,31 +368,107 @@ footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font
     return '';
   }
 
-  function matchesFilter(row, filterVal){
-    const s = (row.Status || '').trim();
-    if (filterVal === 'all') return true;
-    if (filterVal === 'approved_published') return s === 'Approved' || s === 'Published';
-    return s === filterVal;
-  }
-
   function escapeHtml(str){
     return (str || '').toString()
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function render(){
+  function matchesFilter(row){
+    const s = (row.Status || '').trim();
+    let statusOk;
+    if (activeStatus === 'all') statusOk = true;
+    else if (activeStatus === 'approved_published') statusOk = (s === 'Approved' || s === 'Published');
+    else statusOk = (s === activeStatus);
+
+    const pillarOk = (activePillar === 'all') || ((row.Pillar || '') === activePillar);
+    const monthOk = (activeMonth === 'all') || (monthKey(row['Date Added']) === activeMonth);
+
     const search = document.getElementById('searchBox').value.trim().toLowerCase();
-    const filterVal = document.getElementById('statusFilter').value;
+    const searchOk = !search || (row.Topic || '').toLowerCase().includes(search) || (row.Pillar || '').toLowerCase().includes(search);
 
-    const filtered = allRows.filter(r => matchesFilter(r, filterVal) &&
-      (!search || (r.Topic || '').toLowerCase().includes(search) || (r.Pillar || '').toLowerCase().includes(search)));
+    return statusOk && pillarOk && monthOk && searchOk;
+  }
 
-    // progress vs monthly target counts approved + published regardless of search/filter
+  function renderMonthFilter(){
+    const select = document.getElementById('monthFilter');
+    const months = Array.from(new Set(allRows.map(r => monthKey(r['Date Added'])).filter(Boolean)));
+    months.sort().reverse();
+    const prev = activeMonth;
+    select.innerHTML = `<option value="all">Lahat ng Buwan</option>` +
+      months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
+    activeMonth = months.includes(prev) ? prev : 'all';
+    select.value = activeMonth;
+  }
+
+  function renderStatusPills(){
+    const wrap = document.getElementById('statusPills');
+    wrap.innerHTML = STATUS_OPTIONS.map(o =>
+      `<button class="pill ${activeStatus === o.val ? 'active' : ''}" data-val="${o.val}">${escapeHtml(o.label)}</button>`
+    ).join('');
+    wrap.querySelectorAll('.pill').forEach(btn => {
+      btn.addEventListener('click', () => { activeStatus = btn.dataset.val; render(); });
+    });
+  }
+
+  function renderSidebar(){
+    // per-pillar count = Approved + Published rows for that pillar, out of its target
+    const wrap = document.getElementById('pillarList');
+    const pillars = Object.keys(PILLAR_TARGETS);
+    wrap.innerHTML = pillars.map(p => {
+      const count = allRows.filter(r => r.Pillar === p && (r.Status === 'Approved' || r.Status === 'Published')).length;
+      const target = PILLAR_TARGETS[p];
+      const pct = target ? Math.min(100, Math.round((count / target) * 100)) : 0;
+      return `
+        <button class="pillar-row ${activePillar === p ? 'active' : ''}" data-pillar="${escapeHtml(p)}">
+          <span class="row1"><span class="pname">${escapeHtml(p)}</span><span class="pcount">${count}/${target}</span></span>
+          <span class="pbar"><span class="pbar-fill" style="width:${pct}%"></span></span>
+        </button>`;
+    }).join('');
+    wrap.querySelectorAll('.pillar-row').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.pillar;
+        activePillar = (activePillar === p) ? 'all' : p;
+        render();
+      });
+    });
+
     const progressCount = allRows.filter(r => (r.Status === 'Approved' || r.Status === 'Published')).length;
-    const pct = Math.min(100, Math.round((progressCount / MONTHLY_TARGET) * 100));
-    document.getElementById('progressBox').style.display = 'block';
-    document.getElementById('progressText').textContent = progressCount + ' / ' + MONTHLY_TARGET + ' na script para sa buwan (Approved + Published)';
-    document.getElementById('progressFill').style.width = pct + '%';
+    const pct = Math.min(100, (progressCount / MONTHLY_TARGET) * 100);
+    const circumference = 144.5;
+    document.getElementById('ringFill').style.strokeDashoffset = circumference - (circumference * pct / 100);
+    document.getElementById('ringNum').textContent = progressCount + '/' + MONTHLY_TARGET;
+  }
+
+  function parseShotlist(text){
+    return (text || '').split('\n').filter(Boolean).map(line => {
+      const idx = line.indexOf(' — ');
+      if (idx === -1) return { time:'', desc: line.trim() };
+      return { time: line.slice(0, idx).trim(), desc: line.slice(idx + 3).trim() };
+    });
+  }
+
+  function parseBRoll(text){
+    return (text || '').split(/\n\s*\n/).filter(Boolean).map(block => {
+      const idx = block.indexOf(':');
+      if (idx === -1) return { label:'', desc: block.trim() };
+      return { label: block.slice(0, idx).trim(), desc: block.slice(idx + 1).trim() };
+    });
+  }
+
+  function phaseBlock(cls, label, time, text){
+    if (!text) return '';
+    return `
+      <div class="phase ${cls}">
+        <div class="phase-head"><span class="phase-label">${label}</span><span class="phase-time">${time}</span></div>
+        <p class="phase-text">${escapeHtml(text)}</p>
+      </div>`;
+  }
+
+  function render(){
+    if (!allRows.length) return;
+    renderSidebar();
+
+    const filtered = allRows.filter(matchesFilter);
 
     const byPillar = {};
     filtered.forEach(r => {
@@ -208,34 +486,53 @@ footer{margin-top:44px; padding-top:20px; border-top:1px solid var(--line); font
     let html = '';
     Object.keys(byPillar).sort().forEach(pillar => {
       const rows = byPillar[pillar];
-      html += `<h2 class="pillar-head">${escapeHtml(pillar)} <span class="pillar-count">${rows.length} script</span></h2>`;
-      rows.forEach((r, idx) => {
+      html += `<h2 class="pillar-head">${escapeHtml(pillar)} <span class="pillar-count-tag">${rows.length} script</span></h2>`;
+      rows.forEach(r => {
+        const shots = parseShotlist(r.Shotlist);
+        const panels = parseBRoll(r['B-Roll Prompts']);
+
         html += `
         <details class="script-card">
           <summary>
-            <span class="plus"></span>
-            <span class="summary-title">${escapeHtml(r.Topic)}</span>
-            <span class="summary-meta">
-              <span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span>
-              &nbsp; ${escapeHtml(r['Date Added'] || '')}
-            </span>
+            <div class="summary-top">
+              <span class="summary-title">${escapeHtml(r.Topic)}</span>
+              <span class="summary-meta">
+                <span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span>
+                <span class="date-tag">${escapeHtml(formatDateDisplay(r['Date Added']))}</span>
+                <span class="plus"></span>
+              </span>
+            </div>
           </summary>
           <div class="body">
-            ${r.Hook ? `<h3 class="seg">Hook</h3><p class="segtext">${escapeHtml(r.Hook)}</p>` : ''}
-            ${r.Problem ? `<h3 class="seg">Problem</h3><p class="segtext">${escapeHtml(r.Problem)}</p>` : ''}
-            ${r.Solution ? `<h3 class="seg">Solution</h3><p class="segtext">${escapeHtml(r.Solution)}</p>` : ''}
-            ${r['Outro CTA'] ? `<h3 class="seg">Outro / CTA</h3><p class="segtext">${escapeHtml(r['Outro CTA'])}</p>` : ''}
-            ${r.Shotlist ? `<h3 class="seg">Shotlist</h3><p class="segtext">${escapeHtml(r.Shotlist)}</p>` : ''}
-            ${r['B-Roll Prompts'] ? `<h3 class="seg">B-Roll Prompts</h3><p class="segtext">${escapeHtml(r['B-Roll Prompts'])}</p>` : ''}
+            ${phaseBlock('p-hook', 'Hook', '0-3s', r.Hook)}
+            ${phaseBlock('p-problem', 'Problem', '3-10s', r.Problem)}
+            ${phaseBlock('p-solution', 'Solution', '10-40s', r.Solution)}
+            ${phaseBlock('p-outro', 'Outro / CTA', '40-50s', r['Outro CTA'])}
+
+            ${shots.length ? `
+            <h3 class="seg">Shotlist</h3>
+            <div class="shotlist">
+              ${shots.map(s => `<div class="shot-row"><span class="shot-time mono">${escapeHtml(s.time)}</span><span class="shot-desc">${escapeHtml(s.desc)}</span></div>`).join('')}
+            </div>` : ''}
+
+            ${panels.length ? `
+            <h3 class="seg">B-Roll Prompts</h3>
+            ${panels.map(p => `
+              <div class="broll-panel">
+                ${p.label ? `<div class="broll-label">${escapeHtml(p.label)}</div>` : ''}
+                <p class="broll-text">${escapeHtml(p.desc)}</p>
+              </div>`).join('')}` : ''}
+
             ${r.Caption ? `<h3 class="seg">Caption</h3><div class="caption-box">${escapeHtml(r.Caption)}</div>` : ''}
+
             ${(r['Thumb Main Visual'] || r['Thumb Background'] || r['Thumb Text Overlay'] || r['Thumb Logo']) ? `
             <h3 class="seg">Thumbnail Asset</h3>
-            <dl class="thumb-box">
-              ${r['Thumb Main Visual'] ? `<dt>Main Visual</dt><dd>${escapeHtml(r['Thumb Main Visual'])}</dd>` : ''}
-              ${r['Thumb Background'] ? `<dt>Background</dt><dd>${escapeHtml(r['Thumb Background'])}</dd>` : ''}
-              ${r['Thumb Text Overlay'] ? `<dt>Text Overlay</dt><dd>${escapeHtml(r['Thumb Text Overlay'])}</dd>` : ''}
-              ${r['Thumb Logo'] ? `<dt>Brand Logo</dt><dd>${escapeHtml(r['Thumb Logo'])}</dd>` : ''}
-            </dl>` : ''}
+            <div class="thumb-box">
+              ${r['Thumb Main Visual'] ? `<div class="thumb-row"><span class="thumb-key mono">Main Visual</span><span class="thumb-val">${escapeHtml(r['Thumb Main Visual'])}</span></div>` : ''}
+              ${r['Thumb Background'] ? `<div class="thumb-row"><span class="thumb-key mono">Background</span><span class="thumb-val">${escapeHtml(r['Thumb Background'])}</span></div>` : ''}
+              ${r['Thumb Text Overlay'] ? `<div class="thumb-row"><span class="thumb-key mono">Text Overlay</span><span class="thumb-val">${escapeHtml(r['Thumb Text Overlay'])}</span></div>` : ''}
+              ${r['Thumb Logo'] ? `<div class="thumb-row"><span class="thumb-key mono">Brand Logo</span><span class="thumb-val">${escapeHtml(r['Thumb Logo'])}</span></div>` : ''}
+            </div>` : ''}
           </div>
         </details>`;
       });
