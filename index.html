@@ -336,7 +336,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   <div id="reportBody"></div>
 </section>
 
-<footer class="foot">Connects to the Google Sheet via an Apps Script Web App — click Refresh to see new rows. <a href="#" onclick="promptForEditSecret(); return false;" style="color:inherit;">Set edit password</a></footer>
+<footer class="foot">Connects to the Google Sheet via an Apps Script Web App — click Refresh to see new rows.</footer>
 
 <script>
   const MONTHLY_TARGET = 40;
@@ -393,42 +393,21 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   }
 
   // --- in-app editing (Pillar / Status / Produced only) ---
-  // The edit secret lives in this browser's localStorage, never hardcoded in
-  // this file. It's a separate, narrower-scoped secret from the one used to
-  // push brand new scripts (that one stays server-side, in sheet_config.json,
-  // used only by push_to_sheet.py — never embedded here).
-  function getEditSecret(){
-    try { return localStorage.getItem('easypc_edit_secret') || ''; } catch (e) { return ''; }
-  }
-  function setEditSecret(v){
-    try {
-      if (v) localStorage.setItem('easypc_edit_secret', v);
-      else localStorage.removeItem('easypc_edit_secret');
-    } catch (e) {}
-  }
-  function promptForEditSecret(){
-    const v = window.prompt('Enter the edit password (set up in Apps Script as EDIT_SECRET):');
-    if (v) setEditSecret(v);
-    return v || '';
-  }
-  function ensureEditSecret(){
-    return getEditSecret() || promptForEditSecret();
-  }
-
+  // No password gate — anyone with this page's URL can change these three
+  // fields directly. The only safety net is server-side: Code.gs's
+  // EDITABLE_FIELDS whitelist means this action can never touch the actual
+  // script content (Hook/Problem/Solution/etc), only these three fields.
   async function updateField(topic, field, value, selectEl){
-    const secret = ensureEditSecret();
-    if (!secret) { render(); return; }
     if (selectEl) selectEl.disabled = true;
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'update', secret, topic, field, value }),
+        body: JSON.stringify({ action: 'update', topic, field, value }),
       });
       const result = await res.json();
       if (result.error) {
-        if (result.error === 'unauthorized') { setEditSecret(''); alert('Wrong edit password. Try again on your next edit.'); }
-        else alert('Update failed: ' + result.error);
+        alert('Update failed: ' + result.error);
         await loadData();
         return;
       }
