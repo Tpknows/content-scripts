@@ -207,6 +207,12 @@ h2.pillar-head:first-child{margin-top:0;}
 .produced-badge.is-yes{color:var(--green-dk); background:var(--green-soft); border-color:var(--green);}
 
 .script-card .body{padding:2px 16px 18px;}
+.edit-row{display:flex; flex-wrap:wrap; gap:14px; padding:10px 12px; margin:8px 0 4px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px;}
+.edit-row label{display:flex; flex-direction:column; gap:3px; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-family:var(--font-mono);}
+.edit-row select{
+  padding:6px 8px; border:1px solid var(--line); border-radius:6px;
+  background:var(--surface); color:var(--ink); font-family:var(--font-ui); font-size:12.5px;
+}
 .phase{border-left:3px solid var(--line); border-radius:0 6px 6px 0; padding:9px 13px; margin:10px 0; background:var(--surface-2);}
 .phase.p-hook{border-color:var(--seg-hook);}
 .phase.p-problem{border-color:var(--seg-problem);}
@@ -330,7 +336,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   <div id="reportBody"></div>
 </section>
 
-<footer class="foot">Connects to the Google Sheet via an Apps Script Web App — click Refresh to see new rows.</footer>
+<footer class="foot">Connects to the Google Sheet via an Apps Script Web App — click Refresh to see new rows. <a href="#" onclick="promptForEditSecret(); return false;" style="color:inherit;">Set edit password</a></footer>
 
 <script>
   const MONTHLY_TARGET = 40;
@@ -378,6 +384,64 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
   function isProduced(row){
     return (row.Produced || '').trim().toLowerCase() === 'yes';
+  }
+
+  function getAllPillars(){
+    const known = Object.keys(PILLAR_TARGETS);
+    const extra = Array.from(new Set(allRows.map(r => r.Pillar).filter(p => p && !known.includes(p))));
+    return [...known, ...extra];
+  }
+
+  // --- in-app editing (Pillar / Status / Produced only) ---
+  // The edit secret lives in this browser's localStorage, never hardcoded in
+  // this file. It's a separate, narrower-scoped secret from the one used to
+  // push brand new scripts (that one stays server-side, in sheet_config.json,
+  // used only by push_to_sheet.py — never embedded here).
+  function getEditSecret(){
+    try { return localStorage.getItem('easypc_edit_secret') || ''; } catch (e) { return ''; }
+  }
+  function setEditSecret(v){
+    try {
+      if (v) localStorage.setItem('easypc_edit_secret', v);
+      else localStorage.removeItem('easypc_edit_secret');
+    } catch (e) {}
+  }
+  function promptForEditSecret(){
+    const v = window.prompt('Enter the edit password (set up in Apps Script as EDIT_SECRET):');
+    if (v) setEditSecret(v);
+    return v || '';
+  }
+  function ensureEditSecret(){
+    return getEditSecret() || promptForEditSecret();
+  }
+
+  async function updateField(topic, field, value, selectEl){
+    const secret = ensureEditSecret();
+    if (!secret) { render(); return; }
+    if (selectEl) selectEl.disabled = true;
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'update', secret, topic, field, value }),
+      });
+      const result = await res.json();
+      if (result.error) {
+        if (result.error === 'unauthorized') { setEditSecret(''); alert('Wrong edit password. Try again on your next edit.'); }
+        else alert('Update failed: ' + result.error);
+        await loadData();
+        return;
+      }
+      const row = allRows.find(r => r.Topic === topic);
+      if (row) row[field] = value;
+      render();
+      if (document.getElementById('reportView').style.display !== 'none') renderReport();
+    } catch (err) {
+      alert('Could not reach the server: ' + err.message);
+      await loadData();
+    } finally {
+      if (selectEl) selectEl.disabled = false;
+    }
   }
 
   // Google Sheets serializes date cells as full UTC timestamps (e.g. a PH-local
@@ -563,6 +627,10 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     if (!allRows.length) return;
     renderSidebar();
 
+    const openTopics = new Set(
+      Array.from(document.querySelectorAll('.script-card[open]')).map(d => d.dataset.topic)
+    );
+
     const filtered = allRows.filter(matchesFilter);
 
     const byPillar = {};
@@ -578,6 +646,17 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       return;
     }
 
+    const editPillars = getAllPillars();
+    const pillarOptionsHtml = (selected) => editPillars.map(p =>
+      `<option value="${escapeHtml(p)}" ${p === selected ? 'selected' : ''}>${escapeHtml(p)}</option>`
+    ).join('');
+    const statusOptionsHtml = (selected) => ['Draft', 'Approved', 'Published'].map(s =>
+      `<option value="${s}" ${s === selected ? 'selected' : ''}>${s}</option>`
+    ).join('');
+    const producedOptionsHtml = (selected) => ['No', 'Yes'].map(v =>
+      `<option value="${v}" ${v === selected ? 'selected' : ''}>${v}</option>`
+    ).join('');
+
     let html = '';
     Object.keys(byPillar).sort().forEach(pillar => {
       const rows = byPillar[pillar];
@@ -585,9 +664,10 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       rows.forEach(r => {
         const shots = parseShotlist(r.Shotlist);
         const panels = parseBRoll(r['B-Roll Prompts']);
+        const topicAttr = escapeHtml(r.Topic);
 
         html += `
-        <details class="script-card">
+        <details class="script-card" data-topic="${topicAttr}">
           <summary>
             <div class="summary-top">
               <span class="summary-title">${escapeHtml(r.Topic)}</span>
@@ -600,6 +680,17 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
             </div>
           </summary>
           <div class="body">
+            <div class="edit-row" onclick="event.stopPropagation()">
+              <label>Pillar
+                <select class="edit-field" data-field="Pillar">${pillarOptionsHtml(r.Pillar)}</select>
+              </label>
+              <label>Status
+                <select class="edit-field" data-field="Status">${statusOptionsHtml(r.Status)}</select>
+              </label>
+              <label>Produced
+                <select class="edit-field" data-field="Produced">${producedOptionsHtml(isProduced(r) ? 'Yes' : 'No')}</select>
+              </label>
+            </div>
             ${phaseBlock('p-hook', 'Hook', '0-3s', r.Hook)}
             ${phaseBlock('p-problem', 'Problem', '3-10s', r.Problem)}
             ${phaseBlock('p-solution', 'Solution', '10-40s', r.Solution)}
@@ -634,6 +725,12 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       });
     });
     container.innerHTML = html;
+    container.querySelectorAll('.script-card').forEach(card => {
+      if (openTopics.has(card.dataset.topic)) card.setAttribute('open', '');
+      card.querySelectorAll('.edit-field').forEach(sel => {
+        sel.addEventListener('change', () => updateField(card.dataset.topic, sel.dataset.field, sel.value, sel));
+      });
+    });
   }
 
   function renderReport(){
@@ -647,9 +744,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       : `<option value="all">No data</option>`;
     monthSelect.value = reportMonth;
 
-    const knownPillars = Object.keys(PILLAR_TARGETS);
-    const extraPillars = Array.from(new Set(allRows.map(r => r.Pillar).filter(p => p && !knownPillars.includes(p))));
-    const allPillars = [...knownPillars, ...extraPillars];
+    const allPillars = getAllPillars();
     const pillarSelect = document.getElementById('reportPillarFilter');
     pillarSelect.innerHTML = `<option value="all">All Pillars</option>` +
       allPillars.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
