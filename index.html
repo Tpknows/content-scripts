@@ -68,6 +68,42 @@ body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui
 }
 .iconbtn:hover{background:var(--surface-3); color:var(--ink);}
 
+/* ---------- subnav / tabs ---------- */
+.subnav{
+  display:flex; gap:20px; max-width:1280px; margin:0 auto;
+  padding:10px 20px 0; border-bottom:1px solid var(--line);
+}
+.tab-btn{
+  background:transparent; border:none; border-bottom:2px solid transparent;
+  padding:8px 2px 10px; font-family:var(--font-ui); font-size:13.5px; font-weight:700;
+  color:var(--ink-3); cursor:pointer;
+}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--ink); border-color:var(--green);}
+
+/* ---------- monthly report ---------- */
+.report-wrap{max-width:1280px; margin:0 auto; padding:22px 24px 60px;}
+.report-head{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;}
+.report-head h2{margin:0; font-size:19px; font-weight:800;}
+.report-filters{display:flex; gap:8px; flex-wrap:wrap;}
+.report-filters select{
+  padding:8px 11px; border:1px solid var(--line); border-radius:8px;
+  background:var(--surface); color:var(--ink); font-family:var(--font-ui); font-size:13px;
+}
+.report-table{border:1px solid var(--line); border-radius:var(--radius); overflow:hidden;}
+.report-row{display:flex; align-items:center; gap:14px; padding:12px 16px; border-bottom:1px solid var(--line); background:var(--surface);}
+.report-row:last-child{border-bottom:none;}
+.report-row.total{background:var(--surface-2); font-weight:700;}
+.report-pname{width:190px; flex-shrink:0; font-size:13.5px; font-weight:700;}
+.report-bar-track{flex:1; height:8px; border-radius:4px; background:var(--surface-3); overflow:hidden;}
+.report-bar-fill{height:100%; background:var(--green); border-radius:4px;}
+.report-nums{font-family:var(--font-mono); font-size:12px; color:var(--ink-2); width:150px; text-align:right; flex-shrink:0;}
+@media (max-width:640px){
+  .report-row{flex-wrap:wrap;}
+  .report-pname{width:100%;}
+  .report-nums{width:auto;}
+}
+
 /* ---------- layout ---------- */
 .layout{display:flex; align-items:flex-start; max-width:1280px; margin:0 auto;}
 .sidebar{
@@ -162,6 +198,14 @@ h2.pillar-head:first-child{margin-top:0;}
 .tag.status-published{background:rgba(44,107,158,.14); color:var(--blue);}
 .date-tag{font-size:10.5px; color:var(--ink-3); font-family:var(--font-mono); white-space:nowrap;}
 
+.produced-badge{
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:var(--font-mono); font-size:10px; font-weight:600; white-space:nowrap;
+  padding:2px 8px; border-radius:20px; border:1px solid var(--line);
+}
+.produced-badge.is-no{color:var(--ink-3); background:var(--surface-2);}
+.produced-badge.is-yes{color:var(--green-dk); background:var(--green-soft); border-color:var(--green);}
+
 .script-card .body{padding:2px 16px 18px;}
 .phase{border-left:3px solid var(--line); border-radius:0 6px 6px 0; padding:9px 13px; margin:10px 0; background:var(--surface-2);}
 .phase.p-hook{border-color:var(--seg-hook);}
@@ -225,7 +269,12 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   </div>
 </header>
 
-<div class="layout">
+<nav class="subnav">
+  <button class="tab-btn active" data-tab="scripts" onclick="showTab('scripts')">Scripts</button>
+  <button class="tab-btn" data-tab="report" onclick="showTab('report')">Monthly Report</button>
+</nav>
+
+<div class="layout" id="scriptsView">
 
   <aside class="sidebar">
     <div class="ring-card">
@@ -235,18 +284,21 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       </svg>
       <div>
         <div class="ring-num" id="ringNum">0/40</div>
-        <div class="ring-label">Approved + Published<br>ngayong buwan</div>
+        <div class="ring-label">Approved + Published<br>this month</div>
       </div>
     </div>
 
-    <input type="search" id="searchBox" class="side-search" placeholder="Maghanap ng topic..." oninput="render()">
+    <input type="search" id="searchBox" class="side-search" placeholder="Search topics..." oninput="render()">
 
     <p class="side-heading">Status</p>
     <div class="pill-row" id="statusPills"></div>
 
-    <p class="side-heading">Buwan</p>
+    <p class="side-heading">Produced</p>
+    <div class="pill-row" id="producedPills"></div>
+
+    <p class="side-heading">Month</p>
     <select id="monthFilter" class="side-search" onchange="activeMonth = this.value; render();">
-      <option value="all">Lahat ng Buwan</option>
+      <option value="all">All Months</option>
     </select>
 
     <p class="side-heading">Pillar</p>
@@ -267,7 +319,18 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
 </div>
 
-<footer class="foot">Kumokonekta sa Google Sheet gamit ang Apps Script Web App — i-click ang Refresh para makita ang bagong rows.</footer>
+<section class="report-wrap" id="reportView" style="display:none;">
+  <div class="report-head">
+    <h2>Monthly Production Report</h2>
+    <div class="report-filters">
+      <select id="reportMonthFilter" onchange="reportMonth = this.value; renderReport();"></select>
+      <select id="reportPillarFilter" onchange="reportPillar = this.value; renderReport();"></select>
+    </div>
+  </div>
+  <div id="reportBody"></div>
+</section>
+
+<footer class="foot">Connects to the Google Sheet via an Apps Script Web App — click Refresh to see new rows.</footer>
 
 <script>
   const MONTHLY_TARGET = 40;
@@ -283,10 +346,15 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   };
   const STATUS_OPTIONS = [
     { val:'approved_published', label:'Approved+Published' },
-    { val:'all', label:'Lahat' },
+    { val:'all', label:'All' },
     { val:'Draft', label:'Draft' },
     { val:'Approved', label:'Approved' },
     { val:'Published', label:'Published' },
+  ];
+  const PRODUCED_OPTIONS = [
+    { val:'all', label:'All' },
+    { val:'no', label:'Not Produced' },
+    { val:'yes', label:'Produced' },
   ];
   // Embedded backend endpoint — not shown in the UI.
   const API_URL = "https://script.google.com/macros/s/AKfycbw0BE344Ds8OMnaK5EZ3zbRS_ToYGqf0EELwW_UkerTxvq2AFhjw_xlhQJEVdmbM3ZF3A/exec";
@@ -297,6 +365,20 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   let activeStatus = 'approved_published';
   let activePillar = 'all';
   let activeMonth = 'all';
+  let activeProduced = 'all';
+  let reportMonth = 'all';
+  let reportPillar = 'all';
+
+  function showTab(tab){
+    document.getElementById('scriptsView').style.display = tab === 'scripts' ? '' : 'none';
+    document.getElementById('reportView').style.display = tab === 'report' ? '' : 'none';
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    if (tab === 'report') renderReport();
+  }
+
+  function isProduced(row){
+    return (row.Produced || '').trim().toLowerCase() === 'yes';
+  }
 
   // Google Sheets serializes date cells as full UTC timestamps (e.g. a PH-local
   // midnight becomes "...T16:00:00.000Z" the day before) — always read the date
@@ -344,19 +426,21 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   }
 
   async function loadData(){
-    setStatus('Kinukuha ang data...');
+    setStatus('Fetching data...');
     try {
       const res = await fetch(API_URL, { cache: 'no-store' });
       const text = await res.text();
       const json = JSON.parse(text);
-      if (json.error) { setStatus('Error mula sa Apps Script: ' + json.error, true); return; }
+      if (json.error) { setStatus('Error from Apps Script: ' + json.error, true); return; }
       allRows = json;
-      setStatus('Na-load: ' + allRows.length + ' script(s). Huling na-refresh: ' + new Date().toLocaleTimeString());
+      setStatus('Loaded ' + allRows.length + ' script(s). Last refreshed: ' + new Date().toLocaleTimeString());
       renderStatusPills();
+      renderProducedPills();
       renderMonthFilter();
       render();
+      renderReport();
     } catch (err) {
-      setStatus('Hindi makonekta sa data source. Subukan mong i-refresh. (' + err.message + ')', true);
+      setStatus('Could not connect to the data source. Try refreshing. (' + err.message + ')', true);
     }
   }
 
@@ -382,11 +466,12 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
     const pillarOk = (activePillar === 'all') || ((row.Pillar || '') === activePillar);
     const monthOk = (activeMonth === 'all') || (monthKey(row['Date Added']) === activeMonth);
+    const producedOk = (activeProduced === 'all') || (isProduced(row) === (activeProduced === 'yes'));
 
     const search = document.getElementById('searchBox').value.trim().toLowerCase();
     const searchOk = !search || (row.Topic || '').toLowerCase().includes(search) || (row.Pillar || '').toLowerCase().includes(search);
 
-    return statusOk && pillarOk && monthOk && searchOk;
+    return statusOk && pillarOk && monthOk && producedOk && searchOk;
   }
 
   function renderMonthFilter(){
@@ -394,7 +479,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     const months = Array.from(new Set(allRows.map(r => monthKey(r['Date Added'])).filter(Boolean)));
     months.sort().reverse();
     const prev = activeMonth;
-    select.innerHTML = `<option value="all">Lahat ng Buwan</option>` +
+    select.innerHTML = `<option value="all">All Months</option>` +
       months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
     activeMonth = months.includes(prev) ? prev : 'all';
     select.value = activeMonth;
@@ -406,7 +491,17 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       `<button class="pill ${activeStatus === o.val ? 'active' : ''}" data-val="${o.val}">${escapeHtml(o.label)}</button>`
     ).join('');
     wrap.querySelectorAll('.pill').forEach(btn => {
-      btn.addEventListener('click', () => { activeStatus = btn.dataset.val; render(); });
+      btn.addEventListener('click', () => { activeStatus = btn.dataset.val; renderStatusPills(); render(); });
+    });
+  }
+
+  function renderProducedPills(){
+    const wrap = document.getElementById('producedPills');
+    wrap.innerHTML = PRODUCED_OPTIONS.map(o =>
+      `<button class="pill ${activeProduced === o.val ? 'active' : ''}" data-val="${o.val}">${escapeHtml(o.label)}</button>`
+    ).join('');
+    wrap.querySelectorAll('.pill').forEach(btn => {
+      btn.addEventListener('click', () => { activeProduced = btn.dataset.val; renderProducedPills(); render(); });
     });
   }
 
@@ -472,14 +567,14 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
     const byPillar = {};
     filtered.forEach(r => {
-      const p = r.Pillar || 'Walang Pillar';
+      const p = r.Pillar || 'No Pillar';
       if (!byPillar[p]) byPillar[p] = [];
       byPillar[p].push(r);
     });
 
     const container = document.getElementById('content');
     if (filtered.length === 0) {
-      container.innerHTML = '<div class="empty-state">Walang script na tumugma. Subukan mong palitan ang filter o ang search.</div>';
+      container.innerHTML = '<div class="empty-state">No matching scripts. Try changing the filter or search.</div>';
       return;
     }
 
@@ -498,6 +593,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
               <span class="summary-title">${escapeHtml(r.Topic)}</span>
               <span class="summary-meta">
                 <span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span>
+                <span class="produced-badge ${isProduced(r) ? 'is-yes' : 'is-no'}">${isProduced(r) ? '&#10003; Produced' : '&#9675; Not Produced'}</span>
                 <span class="date-tag">${escapeHtml(formatDateDisplay(r['Date Added']))}</span>
                 <span class="plus"></span>
               </span>
@@ -538,6 +634,63 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       });
     });
     container.innerHTML = html;
+  }
+
+  function renderReport(){
+    if (!allRows.length) return;
+
+    const months = Array.from(new Set(allRows.map(r => monthKey(r['Date Added'])).filter(Boolean))).sort().reverse();
+    if (!months.includes(reportMonth)) reportMonth = months[0] || 'all';
+    const monthSelect = document.getElementById('reportMonthFilter');
+    monthSelect.innerHTML = months.length
+      ? months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('')
+      : `<option value="all">No data</option>`;
+    monthSelect.value = reportMonth;
+
+    const knownPillars = Object.keys(PILLAR_TARGETS);
+    const extraPillars = Array.from(new Set(allRows.map(r => r.Pillar).filter(p => p && !knownPillars.includes(p))));
+    const allPillars = [...knownPillars, ...extraPillars];
+    const pillarSelect = document.getElementById('reportPillarFilter');
+    pillarSelect.innerHTML = `<option value="all">All Pillars</option>` +
+      allPillars.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+    pillarSelect.value = reportPillar;
+
+    const body = document.getElementById('reportBody');
+    const rowsInMonth = allRows.filter(r => reportMonth === 'all' || monthKey(r['Date Added']) === reportMonth);
+    if (!rowsInMonth.length) {
+      body.innerHTML = '<div class="empty-state">No scripts logged for this month yet.</div>';
+      return;
+    }
+
+    const pillarsToShow = reportPillar === 'all' ? allPillars : [reportPillar];
+
+    let totalProduced = 0, totalLogged = 0;
+    let html = '<div class="report-table">';
+    pillarsToShow.forEach(p => {
+      const rows = rowsInMonth.filter(r => r.Pillar === p);
+      const produced = rows.filter(isProduced).length;
+      const logged = rows.length;
+      totalProduced += produced;
+      totalLogged += logged;
+      const pct = logged ? Math.round((produced / logged) * 100) : 0;
+      html += `
+        <div class="report-row">
+          <span class="report-pname">${escapeHtml(p)}</span>
+          <span class="report-bar-track"><span class="report-bar-fill" style="width:${pct}%"></span></span>
+          <span class="report-nums">${produced} / ${logged} produced</span>
+        </div>`;
+    });
+    if (pillarsToShow.length > 1) {
+      const totalPct = totalLogged ? Math.round((totalProduced / totalLogged) * 100) : 0;
+      html += `
+        <div class="report-row total">
+          <span class="report-pname">All Pillars</span>
+          <span class="report-bar-track"><span class="report-bar-fill" style="width:${totalPct}%"></span></span>
+          <span class="report-nums">${totalProduced} / ${totalLogged} produced</span>
+        </div>`;
+    }
+    html += '</div>';
+    body.innerHTML = html;
   }
 
   // Auto-fetch immediately on page load — no setup step needed.
