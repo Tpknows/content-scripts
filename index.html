@@ -349,6 +349,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     'Wow Factor Technology': 4,
     'High End Build Features': 4,
     'Customer Stories': 4,
+    'Campaign': 15,
   };
   const STATUS_OPTIONS = [
     { val:'approved_published', label:'Approved+Published' },
@@ -635,6 +636,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     const producedOptionsHtml = (selected) => ['No', 'Yes'].map(v =>
       `<option value="${v}" ${v === selected ? 'selected' : ''}>${v}</option>`
     ).join('');
+    const biancaOptionsHtml = (selected) => ['Not Ready', 'Ready', 'Sent'].map(v =>
+      `<option value="${v}" ${v === selected ? 'selected' : ''}>${v}</option>`
+    ).join('');
 
     let html = '';
     Object.keys(byPillar).sort().forEach(pillar => {
@@ -653,6 +657,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
               <span class="summary-meta">
                 <span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span>
                 <span class="produced-badge ${isProduced(r) ? 'is-yes' : 'is-no'}">${isProduced(r) ? '&#10003; Produced' : '&#9675; Not Produced'}</span>
+                ${(r['Bianca Transfer'] === 'Ready' || r['Bianca Transfer'] === 'Sent') ? `<span class="produced-badge ${r['Bianca Transfer'] === 'Sent' ? 'is-yes' : 'is-no'}">&#8594; ${escapeHtml(r['Bianca Transfer'])}</span>` : ''}
                 <span class="date-tag">${escapeHtml(formatDateDisplay(r['Date Added']))}</span>
                 <span class="plus"></span>
               </span>
@@ -668,6 +673,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
               </label>
               <label>Produced
                 <select class="edit-field" data-field="Produced">${producedOptionsHtml(isProduced(r) ? 'Yes' : 'No')}</select>
+              </label>
+              <label>Bianca Transfer
+                <select class="edit-field" data-field="Bianca Transfer">${biancaOptionsHtml(r['Bianca Transfer'] || 'Not Ready')}</select>
               </label>
             </div>
             ${phaseBlock('p-hook', 'Hook', '0-3s', r.Hook)}
