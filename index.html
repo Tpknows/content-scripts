@@ -266,11 +266,15 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 .hp-opt-head{display:flex; justify-content:space-between; gap:8px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-family:var(--font-mono); font-weight:700; color:var(--ink-3);}
 .hp-opt.selected .hp-opt-head{color:var(--green-dk);}
 .hp-opt-text{font-size:14px; line-height:1.5;}
+.hp-screen{display:block; margin-top:2px; padding:8px 10px; background:var(--bg); border:1px dashed var(--line-strong); border-radius:6px; font-size:12.5px; font-weight:800; letter-spacing:.02em; line-height:1.35; color:var(--ink);}
+.hp-screen-label{display:block; font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-3); margin-bottom:3px;}
+.hp-opt.selected .hp-screen{border-color:var(--green);}
 .hp-foot{display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--ink-3); font-family:var(--font-mono);}
 .hp-clear{background:none; border:none; color:var(--ink-3); text-decoration:underline; cursor:pointer; font-size:12px; font-family:var(--font-mono); padding:0;}
 .hp-clear:hover{color:var(--red);}
 .hook-final{font-weight:600;}
 .hook-pick-tag{display:inline-block; font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--green-dk); font-weight:700; margin-bottom:2px;}
+.hook-screen-line{margin:8px 0 0; font-size:13.5px;}
 .hook-pending{margin:0 0 6px; font-size:12px; color:var(--amber); font-family:var(--font-mono);}
 .hook-opt-line{margin:4px 0; font-size:13px; color:var(--ink-2);}
 .hook-others{margin-top:8px; font-size:12.5px; color:var(--ink-2);}
@@ -454,7 +458,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     const options = [];
     raw.split('\n').forEach(line => {
       const m = line.match(/^\s*•\s*Option\s+(\d)\s*-\s*([^:]+):\s*(.+)$/);
-      if (m) options.push({ n:+m[1], type:m[2].trim(), text:m[3].trim() });
+      if (m) { options.push({ n:+m[1], type:m[2].trim(), text:m[3].trim(), screen:'' }); return; }
+      const t = line.match(/^\s*Text hook:\s*(.+)$/i);
+      if (t && options.length) options[options.length - 1].screen = t[1].trim();
     });
     return { raw, tone: toneM ? toneM[1].trim() : '', final: finalM ? +finalM[1] : 0, options };
   }
@@ -543,6 +549,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
             <button class="hp-opt ${h.final === o.n ? 'selected' : ''}" data-n="${o.n}">
               <span class="hp-opt-head"><span>Option ${o.n} &middot; ${escapeHtml(o.type)}</span>${h.final === o.n ? '<span>&#10003; FINAL</span>' : ''}</span>
               <span class="hp-opt-text">${escapeHtml(o.text)}</span>
+              ${o.screen ? `<span class="hp-screen"><span class="hp-screen-label">On-screen text</span>${escapeHtml(o.screen)}</span>` : ''}
             </button>`).join('')}
         </div>
         <div class="hp-foot"><span>${h.final ? 'Final hook: Option ' + h.final : 'Not picked yet'}</span>${h.final ? '<button class="hp-clear">Clear pick</button>' : ''}</div>
@@ -567,10 +574,11 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     const chosen = h.options.find(o => o.n === h.final);
     const others = h.options.filter(o => !chosen || o.n !== chosen.n);
     const optLines = list => list.map(o =>
-      `<p class="hook-opt-line"><strong>Option ${o.n}</strong> &middot; ${escapeHtml(o.type)}: ${escapeHtml(o.text)}</p>`).join('');
+      `<p class="hook-opt-line"><strong>Option ${o.n}</strong> &middot; ${escapeHtml(o.type)}: ${escapeHtml(o.text)}${o.screen ? `<br><span class="phase-time">On-screen text:</span> <strong>${escapeHtml(o.screen)}</strong>` : ''}</p>`).join('');
     let inner = '';
     if (chosen) {
       inner += `<p class="phase-text hook-final"><span class="hook-pick-tag">Final &middot; Option ${chosen.n} &middot; ${escapeHtml(chosen.type)}</span><br>${escapeHtml(chosen.text)}</p>`;
+      if (chosen.screen) inner += `<p class="hook-screen-line"><span class="hook-pick-tag">On-screen text</span><br><strong>${escapeHtml(chosen.screen)}</strong></p>`;
       inner += `<details class="hook-others"><summary>Other options (${others.length})</summary>${optLines(others)}</details>`;
     } else {
       inner += `<p class="hook-pending">Not picked yet. Choose one in the Hook Picker tab.</p>${optLines(h.options)}`;
