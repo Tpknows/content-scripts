@@ -255,7 +255,21 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 .hp-card.busy{opacity:.55; pointer-events:none;}
 .hp-title{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; font-weight:700; font-size:14.5px;}
 .hp-meta{font-size:11px; color:var(--ink-3); font-family:var(--font-mono); margin:4px 0 11px;}
-.hp-opts{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+.hp-opts{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px;}
+.hp-actions{display:flex; gap:14px; align-items:center;}
+.hp-link{background:none; border:none; color:var(--green-dk); text-decoration:underline; cursor:pointer; font-size:12px; font-family:var(--font-mono); padding:0; font-weight:600;}
+.hp-link:hover{color:var(--ink);}
+.hp-custom{margin-top:12px; padding:12px 14px; background:var(--surface-2); border:1px dashed var(--green); border-radius:8px; display:flex; flex-direction:column; gap:10px;}
+.hp-custom label{display:flex; flex-direction:column; gap:4px; font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700;}
+.hp-custom textarea, .hp-custom input{
+  padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink);
+  font-family:var(--font-ui); font-size:14px; text-transform:none; letter-spacing:0; font-weight:400; resize:vertical;
+}
+.hp-custom input.caps{text-transform:uppercase; font-weight:800;}
+.hp-custom-btns{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.hp-btn{padding:8px 14px; border-radius:8px; border:1px solid var(--line-strong); background:var(--surface); color:var(--ink); font-family:var(--font-ui); font-size:13px; font-weight:700; cursor:pointer;}
+.hp-btn.primary{background:var(--green); border-color:var(--green); color:#0b0b0b;}
+.hp-btn:hover{filter:brightness(.96);}
 .hp-opt{
   text-align:left; display:flex; flex-direction:column; gap:7px;
   background:var(--surface-2); color:var(--ink); border:2px solid var(--line); border-radius:8px;
@@ -279,7 +293,6 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 .hook-opt-line{margin:4px 0; font-size:13px; color:var(--ink-2);}
 .hook-others{margin-top:8px; font-size:12.5px; color:var(--ink-2);}
 .hook-others summary{cursor:pointer; color:var(--ink-3); font-family:var(--font-mono); font-size:11px;}
-@media (max-width:860px){ .hp-opts{grid-template-columns:1fr;} }
 
 /* ---------- responsive ---------- */
 @media (max-width:860px){
@@ -374,7 +387,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       <input type="search" id="hookSearch" class="side-search" style="width:200px; margin:0;" placeholder="Search topics..." oninput="renderHookPicker()">
     </div>
   </div>
-  <p class="hp-intro">Each script has 3 hook options. Click the one the team agrees on and it becomes that script's final hook. Click a different one anytime to change it.</p>
+  <p class="hp-intro">Each script has 3 hook options. Click the one the team agrees on and it becomes that script's final hook. Click a different one anytime to change it. None of them work? Use "+ Write your own (Option 4)" on the card.</p>
   <p class="status-line" id="hookSummary">&nbsp;</p>
   <div id="hookBody"></div>
 </section>
@@ -476,6 +489,36 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     return h;
   }
 
+  const editingCustom = new Set();
+
+  async function saveCustomHook(topic, spoken, screen, cardEl){
+    if (cardEl) cardEl.classList.add('busy');
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'setCustomHook', topic, spoken, screen, final: true }),
+      });
+      const result = await res.json();
+      if (result.error) {
+        alert(result.error === 'unauthorized'
+          ? 'Custom hooks are not switched on yet. The updated Code.gs needs to be redeployed in Apps Script first.'
+          : 'Save failed: ' + result.error);
+        return;
+      }
+      const row = allRows.find(r => r.Topic === topic);
+      if (row) row.Hook = result.hook;
+      editingCustom.delete(topic);
+      if (spoken.trim()) recentPicks.add(topic); else recentPicks.delete(topic);
+      renderHookPicker();
+      render();
+    } catch (err) {
+      alert('Could not reach the server: ' + err.message);
+    } finally {
+      if (cardEl) cardEl.classList.remove('busy');
+    }
+  }
+
   async function pickHook(topic, n, cardEl){
     if (cardEl) cardEl.classList.add('busy');
     try {
@@ -552,7 +595,29 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
               ${o.screen ? `<span class="hp-screen"><span class="hp-screen-label">On-screen text</span>${escapeHtml(o.screen)}</span>` : ''}
             </button>`).join('')}
         </div>
-        <div class="hp-foot"><span>${h.final ? 'Final hook: Option ' + h.final : 'Not picked yet'}</span>${h.final ? '<button class="hp-clear">Clear pick</button>' : ''}</div>
+        ${editingCustom.has(r.Topic) ? (() => {
+          const cu = h.options.find(o => o.n === 4);
+          return `
+        <div class="hp-custom">
+          <label>Spoken hook (what the talent says)
+            <textarea class="hp-c-spoken" rows="2" maxlength="220" placeholder="Type your own hook line...">${escapeHtml(cu ? cu.text : '')}</textarea>
+          </label>
+          <label>On-screen text (optional, short)
+            <input class="hp-c-screen caps" maxlength="80" placeholder="TEXT ON SCREEN" value="${attr(cu ? cu.screen : '')}">
+          </label>
+          <div class="hp-custom-btns">
+            <button class="hp-btn primary hp-c-save">Save &amp; use as final</button>
+            <button class="hp-btn hp-c-cancel">Cancel</button>
+            ${cu ? '<button class="hp-link hp-c-remove">Remove custom hook</button>' : ''}
+          </div>
+        </div>`; })() : ''}
+        <div class="hp-foot">
+          <span>${h.final ? 'Final hook: Option ' + h.final : 'Not picked yet'}</span>
+          <span class="hp-actions">
+            ${editingCustom.has(r.Topic) ? '' : `<button class="hp-link hp-c-open">${h.options.some(o => o.n === 4) ? 'Edit custom hook' : '+ Write your own (Option 4)'}</button>`}
+            ${h.final ? '<button class="hp-clear">Clear pick</button>' : ''}
+          </span>
+        </div>
       </div>`).join('');
 
     body.querySelectorAll('.hp-card').forEach(card => {
@@ -565,6 +630,28 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       });
       const clr = card.querySelector('.hp-clear');
       if (clr) clr.addEventListener('click', () => pickHook(topic, 0, card));
+
+      const openBtn = card.querySelector('.hp-c-open');
+      if (openBtn) openBtn.addEventListener('click', () => {
+        editingCustom.add(topic);
+        renderHookPicker();
+        const again = [...document.querySelectorAll('#hookBody .hp-card')].find(c => c.dataset.topic === topic);
+        const ta = again && again.querySelector('.hp-c-spoken');
+        if (ta) ta.focus();
+      });
+      const cancelBtn = card.querySelector('.hp-c-cancel');
+      if (cancelBtn) cancelBtn.addEventListener('click', () => { editingCustom.delete(topic); renderHookPicker(); });
+      const saveBtn = card.querySelector('.hp-c-save');
+      if (saveBtn) saveBtn.addEventListener('click', () => {
+        const spoken = card.querySelector('.hp-c-spoken').value.trim();
+        const screen = card.querySelector('.hp-c-screen').value.trim();
+        if (!spoken) { alert('Type the spoken hook first, or use "Remove custom hook" to delete it.'); return; }
+        saveCustomHook(topic, spoken, screen, card);
+      });
+      const removeBtn = card.querySelector('.hp-c-remove');
+      if (removeBtn) removeBtn.addEventListener('click', () => {
+        if (confirm('Remove the custom hook for this script?')) saveCustomHook(topic, '', '', card);
+      });
     });
   }
 
