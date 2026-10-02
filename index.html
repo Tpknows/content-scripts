@@ -246,6 +246,37 @@ h3.seg{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var
 
 footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:11.5px; color:var(--ink-3); font-family:var(--font-mono);}
 
+/* ---------- hook picker ---------- */
+.tab-btn .badge{display:inline-block; margin-left:6px; background:var(--green); color:#0b0b0b; border-radius:10px; padding:0 7px; font-size:11px; font-weight:700; font-family:var(--font-mono); line-height:17px;}
+.tab-btn .badge.zero{background:var(--surface-3); color:var(--ink-3);}
+.hp-intro{font-size:13.5px; color:var(--ink-2); margin:0 0 16px;}
+.hp-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin:12px 0;}
+.hp-card.done{border-color:var(--green);}
+.hp-card.busy{opacity:.55; pointer-events:none;}
+.hp-title{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; font-weight:700; font-size:14.5px;}
+.hp-meta{font-size:11px; color:var(--ink-3); font-family:var(--font-mono); margin:4px 0 11px;}
+.hp-opts{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+.hp-opt{
+  text-align:left; display:flex; flex-direction:column; gap:7px;
+  background:var(--surface-2); color:var(--ink); border:2px solid var(--line); border-radius:8px;
+  padding:11px 13px; cursor:pointer; font-family:var(--font-ui);
+}
+.hp-opt:hover{border-color:var(--line-strong);}
+.hp-opt.selected{border-color:var(--green); background:var(--green-soft);}
+.hp-opt-head{display:flex; justify-content:space-between; gap:8px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-family:var(--font-mono); font-weight:700; color:var(--ink-3);}
+.hp-opt.selected .hp-opt-head{color:var(--green-dk);}
+.hp-opt-text{font-size:14px; line-height:1.5;}
+.hp-foot{display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:12px; color:var(--ink-3); font-family:var(--font-mono);}
+.hp-clear{background:none; border:none; color:var(--ink-3); text-decoration:underline; cursor:pointer; font-size:12px; font-family:var(--font-mono); padding:0;}
+.hp-clear:hover{color:var(--red);}
+.hook-final{font-weight:600;}
+.hook-pick-tag{display:inline-block; font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--green-dk); font-weight:700; margin-bottom:2px;}
+.hook-pending{margin:0 0 6px; font-size:12px; color:var(--amber); font-family:var(--font-mono);}
+.hook-opt-line{margin:4px 0; font-size:13px; color:var(--ink-2);}
+.hook-others{margin-top:8px; font-size:12.5px; color:var(--ink-2);}
+.hook-others summary{cursor:pointer; color:var(--ink-3); font-family:var(--font-mono); font-size:11px;}
+@media (max-width:860px){ .hp-opts{grid-template-columns:1fr;} }
+
 /* ---------- responsive ---------- */
 @media (max-width:860px){
   .layout{flex-direction:column;}
@@ -277,6 +308,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
 <nav class="subnav">
   <button class="tab-btn active" data-tab="scripts" onclick="showTab('scripts')">Scripts</button>
+  <button class="tab-btn" data-tab="hooks" onclick="showTab('hooks')">Hook Picker <span class="badge zero" id="hookBadge">0</span></button>
   <button class="tab-btn" data-tab="report" onclick="showTab('report')">Monthly Report</button>
 </nav>
 
@@ -324,6 +356,24 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   </main>
 
 </div>
+
+<section class="report-wrap" id="hookView" style="display:none;">
+  <div class="report-head">
+    <h2>Hook Picker</h2>
+    <div class="report-filters">
+      <select id="hookFilterSel" onchange="hookFilter = this.value; renderHookPicker();">
+        <option value="needs">Needs pick</option>
+        <option value="picked">Picked</option>
+        <option value="all">All</option>
+      </select>
+      <select id="hookPillarSel" onchange="hookPillar = this.value; renderHookPicker();"></select>
+      <input type="search" id="hookSearch" class="side-search" style="width:200px; margin:0;" placeholder="Search topics..." oninput="renderHookPicker()">
+    </div>
+  </div>
+  <p class="hp-intro">Each script has 3 hook options. Click the one the team agrees on and it becomes that script's final hook. Click a different one anytime to change it.</p>
+  <p class="status-line" id="hookSummary">&nbsp;</p>
+  <div id="hookBody"></div>
+</section>
 
 <section class="report-wrap" id="reportView" style="display:none;">
   <div class="report-head">
@@ -378,9 +428,159 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
   function showTab(tab){
     document.getElementById('scriptsView').style.display = tab === 'scripts' ? '' : 'none';
+    document.getElementById('hookView').style.display = tab === 'hooks' ? '' : 'none';
     document.getElementById('reportView').style.display = tab === 'report' ? '' : 'none';
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     if (tab === 'report') renderReport();
+    if (tab === 'hooks') renderHookPicker();
+  }
+
+  // --- Hook options ---
+  // A script's Hook field holds up to 3 options:
+  //   [Tone: ...]
+  //   [FINAL: 2]          <- present only after the team picks
+  //   • Option 1 - Statement Hook: ...
+  //   • Option 2 - Question Hook: ...
+  //   • Option 3 - Problem statement: ...
+  // Older scripts have a single plain hook and no options (nothing to pick).
+  let hookFilter = 'needs';
+  let hookPillar = 'all';
+  const recentPicks = new Set();
+
+  function parseHook(text){
+    const raw = (text || '').toString();
+    const toneM = raw.match(/\[Tone:\s*([^\]]*)\]/);
+    const finalM = raw.match(/\[FINAL:\s*(\d)\]/);
+    const options = [];
+    raw.split('\n').forEach(line => {
+      const m = line.match(/^\s*•\s*Option\s+(\d)\s*-\s*([^:]+):\s*(.+)$/);
+      if (m) options.push({ n:+m[1], type:m[2].trim(), text:m[3].trim() });
+    });
+    return { raw, tone: toneM ? toneM[1].trim() : '', final: finalM ? +finalM[1] : 0, options };
+  }
+
+  function attr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+  function applyPickLocal(hookText, n){
+    let h = (hookText || '').toString().replace(/^\[FINAL: \d\]\n?/m, '');
+    if (n > 0) {
+      if (/^\[Tone:[^\n]*\]$/m.test(h)) h = h.replace(/^(\[Tone:[^\n]*\])$/m, '$1\n[FINAL: ' + n + ']');
+      else h = '[FINAL: ' + n + ']\n' + h;
+    }
+    return h;
+  }
+
+  async function pickHook(topic, n, cardEl){
+    if (cardEl) cardEl.classList.add('busy');
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'pickHook', topic, option: n }),
+      });
+      const result = await res.json();
+      if (result.error) {
+        alert(result.error === 'unauthorized'
+          ? 'Hook picking is not switched on yet. The updated Code.gs needs to be redeployed in Apps Script first.'
+          : 'Pick failed: ' + result.error);
+        return;
+      }
+      const row = allRows.find(r => r.Topic === topic);
+      if (row) row.Hook = applyPickLocal(row.Hook, n);
+      if (n > 0) recentPicks.add(topic); else recentPicks.delete(topic);
+      renderHookPicker();
+      render();
+    } catch (err) {
+      alert('Could not reach the server: ' + err.message);
+    } finally {
+      if (cardEl) cardEl.classList.remove('busy');
+    }
+  }
+
+  function renderHookPicker(){
+    if (!allRows.length) return;
+    const items = allRows.map(r => ({ r, h: parseHook(r.Hook) })).filter(x => x.h.options.length);
+    const total = items.length;
+    const pickedCount = items.filter(x => x.h.final).length;
+    const badge = document.getElementById('hookBadge');
+    badge.textContent = total - pickedCount;
+    badge.classList.toggle('zero', total - pickedCount === 0);
+
+    const pillarSel = document.getElementById('hookPillarSel');
+    const pillars = Array.from(new Set(items.map(x => x.r.Pillar).filter(Boolean)));
+    pillarSel.innerHTML = '<option value="all">All Pillars</option>' +
+      pillars.map(p => `<option value="${attr(p)}">${escapeHtml(p)}</option>`).join('');
+    if (!pillars.includes(hookPillar)) hookPillar = 'all';
+    pillarSel.value = hookPillar;
+    document.getElementById('hookFilterSel').value = hookFilter;
+
+    const search = document.getElementById('hookSearch').value.trim().toLowerCase();
+    const shown = items.filter(x => {
+      const done = !!x.h.final;
+      if (hookFilter === 'needs' && done && !recentPicks.has(x.r.Topic)) return false;
+      if (hookFilter === 'picked' && !done) return false;
+      if (hookPillar !== 'all' && x.r.Pillar !== hookPillar) return false;
+      if (search && !(x.r.Topic || '').toLowerCase().includes(search)) return false;
+      return true;
+    });
+
+    const summary = document.getElementById('hookSummary');
+    summary.textContent = pickedCount + ' of ' + total + ' scripts have a final hook. Showing ' + shown.length + '.';
+
+    const body = document.getElementById('hookBody');
+    if (!shown.length) {
+      body.innerHTML = '<div class="empty-state">' + (total && pickedCount === total && hookFilter === 'needs'
+        ? 'Every script has a final hook. Nothing left to pick.' : 'No matching scripts.') + '</div>';
+      return;
+    }
+
+    body.innerHTML = shown.map(({ r, h }) => `
+      <div class="hp-card ${h.final ? 'done' : ''}" data-topic="${attr(r.Topic)}">
+        <div class="hp-title"><span>${escapeHtml(r.Topic.replace(/\s*\(October\)\s*$/, ''))}</span><span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span></div>
+        <div class="hp-meta">${escapeHtml(r.Pillar || '')}${h.tone ? ' &middot; Tone: ' + escapeHtml(h.tone) : ''}</div>
+        <div class="hp-opts">
+          ${h.options.map(o => `
+            <button class="hp-opt ${h.final === o.n ? 'selected' : ''}" data-n="${o.n}">
+              <span class="hp-opt-head"><span>Option ${o.n} &middot; ${escapeHtml(o.type)}</span>${h.final === o.n ? '<span>&#10003; FINAL</span>' : ''}</span>
+              <span class="hp-opt-text">${escapeHtml(o.text)}</span>
+            </button>`).join('')}
+        </div>
+        <div class="hp-foot"><span>${h.final ? 'Final hook: Option ' + h.final : 'Not picked yet'}</span>${h.final ? '<button class="hp-clear">Clear pick</button>' : ''}</div>
+      </div>`).join('');
+
+    body.querySelectorAll('.hp-card').forEach(card => {
+      const topic = card.dataset.topic;
+      card.querySelectorAll('.hp-opt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (btn.classList.contains('selected')) return;
+          pickHook(topic, +btn.dataset.n, card);
+        });
+      });
+      const clr = card.querySelector('.hp-clear');
+      if (clr) clr.addEventListener('click', () => pickHook(topic, 0, card));
+    });
+  }
+
+  function hookPhaseBlock(r){
+    const h = parseHook(r.Hook);
+    if (!h.options.length) return phaseBlock('p-hook', 'Hook', '0-3s', r.Hook);
+    const chosen = h.options.find(o => o.n === h.final);
+    const others = h.options.filter(o => !chosen || o.n !== chosen.n);
+    const optLines = list => list.map(o =>
+      `<p class="hook-opt-line"><strong>Option ${o.n}</strong> &middot; ${escapeHtml(o.type)}: ${escapeHtml(o.text)}</p>`).join('');
+    let inner = '';
+    if (chosen) {
+      inner += `<p class="phase-text hook-final"><span class="hook-pick-tag">Final &middot; Option ${chosen.n} &middot; ${escapeHtml(chosen.type)}</span><br>${escapeHtml(chosen.text)}</p>`;
+      inner += `<details class="hook-others"><summary>Other options (${others.length})</summary>${optLines(others)}</details>`;
+    } else {
+      inner += `<p class="hook-pending">Not picked yet. Choose one in the Hook Picker tab.</p>${optLines(h.options)}`;
+    }
+    if (h.tone) inner += `<p class="phase-time" style="margin:6px 0 0;">Tone: ${escapeHtml(h.tone)}</p>`;
+    return `
+      <div class="phase p-hook">
+        <div class="phase-head"><span class="phase-label">Hook</span><span class="phase-time">0-3s</span></div>
+        ${inner}
+      </div>`;
   }
 
   function isProduced(row){
@@ -483,6 +683,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       renderMonthFilter();
       render();
       renderReport();
+      renderHookPicker();
     } catch (err) {
       setStatus('Could not connect to the data source. Try refreshing. (' + err.message + ')', true);
     }
@@ -678,7 +879,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
                 <select class="edit-field" data-field="Bianca Transfer">${biancaOptionsHtml(r['Bianca Transfer'] || 'Not Ready')}</select>
               </label>
             </div>
-            ${phaseBlock('p-hook', 'Hook', '0-3s', r.Hook)}
+            ${hookPhaseBlock(r)}
             ${phaseBlock('p-problem', 'Problem', '3-10s', r.Problem)}
             ${phaseBlock('p-solution', 'Solution', '10-40s', r.Solution)}
             ${phaseBlock('p-outro', 'Outro / CTA', '40-50s', r['Outro CTA'])}
