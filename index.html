@@ -351,6 +351,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     <p class="side-heading">Produced</p>
     <div class="pill-row" id="producedPills"></div>
 
+    <p class="side-heading">Final Hook</p>
+    <div class="pill-row" id="hookPills"></div>
+
     <p class="side-heading">Month</p>
     <select id="monthFilter" class="side-search" onchange="activeMonth = this.value; render();">
       <option value="all">All Months</option>
@@ -430,6 +433,14 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     { val:'no', label:'Not Produced' },
     { val:'yes', label:'Produced' },
   ];
+  // Final Hook filter: "picked" = the team chose one of the hook options;
+  // "unpicked" = has options but none chosen yet. Older scripts with a single
+  // plain hook have no options, so they match neither.
+  const HOOK_FILTER_OPTIONS = [
+    { val:'all', label:'All' },
+    { val:'picked', label:'Hook Picked' },
+    { val:'unpicked', label:'Not Picked Yet' },
+  ];
   // Embedded backend endpoint — not shown in the UI.
   const API_URL = "https://script.google.com/macros/s/AKfycbw0BE344Ds8OMnaK5EZ3zbRS_ToYGqf0EELwW_UkerTxvq2AFhjw_xlhQJEVdmbM3ZF3A/exec";
 
@@ -440,6 +451,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   let activePillar = 'all';
   let activeMonth = 'all';
   let activeProduced = 'all';
+  let activeHookFilter = 'all';
   let reportMonth = 'all';
   let reportPillar = 'all';
 
@@ -511,6 +523,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       editingCustom.delete(topic);
       if (spoken.trim()) recentPicks.add(topic); else recentPicks.delete(topic);
       renderHookPicker();
+      renderHookFilterPills();
       render();
     } catch (err) {
       alert('Could not reach the server: ' + err.message);
@@ -538,6 +551,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       if (row) row.Hook = applyPickLocal(row.Hook, n);
       if (n > 0) recentPicks.add(topic); else recentPicks.delete(topic);
       renderHookPicker();
+      renderHookFilterPills();
       render();
     } catch (err) {
       alert('Could not reach the server: ' + err.message);
@@ -775,6 +789,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       setStatus('Loaded ' + allRows.length + ' script(s). Last refreshed: ' + new Date().toLocaleTimeString());
       renderStatusPills();
       renderProducedPills();
+      renderHookFilterPills();
       renderMonthFilter();
       render();
       renderReport();
@@ -807,11 +822,16 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     const pillarOk = (activePillar === 'all') || ((row.Pillar || '') === activePillar);
     const monthOk = (activeMonth === 'all') || (monthKey(row['Date Added']) === activeMonth);
     const producedOk = (activeProduced === 'all') || (isProduced(row) === (activeProduced === 'yes'));
+    let hookOk = true;
+    if (activeHookFilter !== 'all') {
+      const h = parseHook(row.Hook);
+      hookOk = activeHookFilter === 'picked' ? h.final > 0 : (h.options.length > 0 && !h.final);
+    }
 
     const search = document.getElementById('searchBox').value.trim().toLowerCase();
     const searchOk = !search || (row.Topic || '').toLowerCase().includes(search) || (row.Pillar || '').toLowerCase().includes(search);
 
-    return statusOk && pillarOk && monthOk && producedOk && searchOk;
+    return statusOk && pillarOk && monthOk && producedOk && hookOk && searchOk;
   }
 
   function renderMonthFilter(){
@@ -842,6 +862,23 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     ).join('');
     wrap.querySelectorAll('.pill').forEach(btn => {
       btn.addEventListener('click', () => { activeProduced = btn.dataset.val; renderProducedPills(); render(); });
+    });
+  }
+
+  function renderHookFilterPills(){
+    const wrap = document.getElementById('hookPills');
+    const counts = { picked: 0, unpicked: 0 };
+    allRows.forEach(r => {
+      const h = parseHook(r.Hook);
+      if (h.final) counts.picked++;
+      else if (h.options.length) counts.unpicked++;
+    });
+    wrap.innerHTML = HOOK_FILTER_OPTIONS.map(o => {
+      const n = o.val === 'all' ? '' : ' (' + counts[o.val] + ')';
+      return `<button class="pill ${activeHookFilter === o.val ? 'active' : ''}" data-val="${o.val}">${escapeHtml(o.label + n)}</button>`;
+    }).join('');
+    wrap.querySelectorAll('.pill').forEach(btn => {
+      btn.addEventListener('click', () => { activeHookFilter = btn.dataset.val; renderHookFilterPills(); render(); });
     });
   }
 
