@@ -294,6 +294,29 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 .hook-others{margin-top:8px; font-size:12.5px; color:var(--ink-2);}
 .hook-others summary{cursor:pointer; color:var(--ink-3); font-family:var(--font-mono); font-size:11px;}
 
+/* ---------- script editor + comparison ---------- */
+.script-tools{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:10px 0 4px;}
+.st-meta{font-size:12px; color:var(--ink-3); font-family:var(--font-mono);}
+.produced-badge.is-edited{color:var(--blue); background:rgba(44,107,158,.12); border-color:var(--blue);}
+.cmp-wrap{margin:10px 0; border:1px solid var(--line); border-radius:8px; padding:12px 14px; background:var(--surface);}
+.cmp-title{font-size:12px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; margin:0 0 8px;}
+.cmp-field{margin:0 0 14px;}
+.cmp-label{font-size:12px; font-family:var(--font-mono); font-weight:700; color:var(--ink-2); margin-bottom:6px;}
+.cmp-cols{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.cmp-col{background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:9px 11px;}
+.cmp-head{font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); margin-bottom:4px; font-weight:700;}
+.cmp-text{white-space:pre-wrap; font-size:13.5px; line-height:1.7; color:var(--ink);}
+.diff-add{background:rgba(98,177,52,.25); border-radius:3px; padding:0 2px;}
+.diff-del{background:rgba(179,64,47,.16); color:var(--red); text-decoration:line-through; border-radius:3px; padding:0 2px;}
+.src-note{margin:6px 0 0; font-size:12px; color:var(--ink-3); overflow-wrap:anywhere;}
+.hp-script{margin-top:10px; border-top:1px solid var(--line); padding-top:8px;}
+.hp-script > summary{cursor:pointer; font-size:12px; font-family:var(--font-mono); font-weight:700; color:var(--green-dk); list-style:none;}
+.hp-script > summary::-webkit-details-marker{display:none;}
+.hp-script > summary::before{content:"+ ";}
+.hp-script[open] > summary::before{content:"\2212 ";}
+.hp-script-body{margin-top:8px;}
+@media (max-width:860px){ .cmp-cols{grid-template-columns:1fr;} }
+
 /* ---------- responsive ---------- */
 @media (max-width:860px){
   .layout{flex-direction:column;}
@@ -625,6 +648,13 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
             ${cu ? '<button class="hp-link hp-c-remove">Remove custom hook</button>' : ''}
           </div>
         </div>`; })() : ''}
+        <details class="hp-script" data-topic="${attr(r.Topic)}" ${openScriptView.has(r.Topic) ? 'open' : ''}>
+          <summary>View full script${isEdited(r) ? ' (edited)' : ''}</summary>
+          <div class="hp-script-body">
+            ${scriptViewHtml(r)}
+            <p><button class="hp-link hp-edit-script">Edit this script in the Scripts tab</button></p>
+          </div>
+        </details>
         <div class="hp-foot">
           <span>${h.final ? 'Final hook: Option ' + h.final : 'Not picked yet'}</span>
           <span class="hp-actions">
@@ -644,6 +674,11 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       });
       const clr = card.querySelector('.hp-clear');
       if (clr) clr.addEventListener('click', () => pickHook(topic, 0, card));
+
+      const sv = card.querySelector('.hp-script');
+      if (sv) sv.addEventListener('toggle', () => { sv.open ? openScriptView.add(topic) : openScriptView.delete(topic); });
+      const editLink = card.querySelector('.hp-edit-script');
+      if (editLink) editLink.addEventListener('click', () => openScriptInTab(topic));
 
       const openBtn = card.querySelector('.hp-c-open');
       if (openBtn) openBtn.addEventListener('click', () => {
@@ -991,6 +1026,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
                 <span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span>
                 <span class="produced-badge ${isProduced(r) ? 'is-yes' : 'is-no'}">${isProduced(r) ? '&#10003; Produced' : '&#9675; Not Produced'}</span>
                 ${(r['Bianca Transfer'] === 'Ready' || r['Bianca Transfer'] === 'Sent') ? `<span class="produced-badge ${r['Bianca Transfer'] === 'Sent' ? 'is-yes' : 'is-no'}">&#8594; ${escapeHtml(r['Bianca Transfer'])}</span>` : ''}
+                ${isEdited(r) ? '<span class="produced-badge is-edited">&#9998; Edited</span>' : ''}
                 <span class="date-tag">${escapeHtml(formatDateDisplay(r['Date Added']))}</span>
                 <span class="plus"></span>
               </span>
@@ -1011,6 +1047,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
                 <select class="edit-field" data-field="Bianca Transfer">${biancaOptionsHtml(r['Bianca Transfer'] || 'Not Ready')}</select>
               </label>
             </div>
+            ${scriptToolsHtml(r)}
             ${hookPhaseBlock(r)}
             ${phaseBlock('p-problem', 'Problem', '3-10s', r.Problem)}
             ${phaseBlock('p-solution', 'Solution', '10-40s', r.Solution)}
@@ -1047,10 +1084,224 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     container.innerHTML = html;
     container.querySelectorAll('.script-card').forEach(card => {
       if (openTopics.has(card.dataset.topic)) card.setAttribute('open', '');
+      wireScriptTools(card);
       card.querySelectorAll('.edit-field').forEach(sel => {
         sel.addEventListener('change', () => updateField(card.dataset.topic, sel.dataset.field, sel.value, sel));
       });
     });
+  }
+
+  // --- Script editing + original-vs-edited comparison ---
+  // The team can edit Problem / Solution / Outro CTA. The first edit saves the
+  // original of all three in the "Original Script" column (server side), so
+  // the comparison and "Revert to original" always work. The Solution's
+  // "Source:" line is kept out of the editor and re-attached on save.
+  const SCRIPT_FIELDS = ['Problem', 'Solution', 'Outro CTA'];
+  const SCRIPT_LABELS = { 'Problem': 'Problem', 'Solution': 'Solution', 'Outro CTA': 'Outro / CTA' };
+  const editingScript = new Set();
+  const comparingScript = new Set();
+  const openScriptView = new Set();
+  const scriptDrafts = {};
+
+  function splitSource(text){
+    const s = (text || '').toString();
+    const i = s.search(/\n\s*Source:/);
+    if (i === -1) return { body: s, source: '' };
+    return { body: s.slice(0, i).trimEnd(), source: s.slice(i).replace(/^\n+/, '') };
+  }
+
+  function parseOriginal(row){
+    try {
+      const o = JSON.parse(row['Original Script'] || '');
+      return o && typeof o === 'object' ? o : null;
+    } catch (e) { return null; }
+  }
+  function isEdited(row){ return !!parseOriginal(row); }
+
+  function wordDiff(a, b){
+    const tok = s => (s || '').match(/\n|[^\s]+/g) || [];
+    const A = tok(a), B = tok(b), n = A.length, m = B.length, W = m + 1;
+    const dp = new Uint16Array((n + 1) * W);
+    for (let i = n - 1; i >= 0; i--) {
+      for (let j = m - 1; j >= 0; j--) {
+        dp[i * W + j] = A[i] === B[j] ? dp[(i + 1) * W + j + 1] + 1 : Math.max(dp[(i + 1) * W + j], dp[i * W + j + 1]);
+      }
+    }
+    const left = [], right = [];
+    let i = 0, j = 0, changes = 0;
+    const bump = w => { if (w !== '\n') changes++; };
+    while (i < n && j < m) {
+      if (A[i] === B[j]) { left.push({ t: 'same', w: A[i] }); right.push({ t: 'same', w: B[j] }); i++; j++; }
+      else if (dp[(i + 1) * W + j] >= dp[i * W + j + 1]) { left.push({ t: 'del', w: A[i] }); bump(A[i]); i++; }
+      else { right.push({ t: 'add', w: B[j] }); bump(B[j]); j++; }
+    }
+    while (i < n) { left.push({ t: 'del', w: A[i] }); bump(A[i]); i++; }
+    while (j < m) { right.push({ t: 'add', w: B[j] }); bump(B[j]); j++; }
+    return { left, right, changes };
+  }
+
+  function renderDiffSide(ops){
+    let html = '';
+    ops.forEach((o, idx) => {
+      if (o.w === '\n') { html += '\n'; return; }
+      const sep = idx > 0 && ops[idx - 1].w !== '\n' ? ' ' : '';
+      const cls = o.t === 'del' ? 'diff-del' : o.t === 'add' ? 'diff-add' : '';
+      html += sep + (cls ? `<span class="${cls}">${escapeHtml(o.w)}</span>` : escapeHtml(o.w));
+    });
+    return html;
+  }
+
+  function compareBlock(row){
+    const orig = parseOriginal(row);
+    if (!orig) return '';
+    const fieldsHtml = SCRIPT_FIELDS.map(f => {
+      const d = wordDiff(splitSource(orig[f]).body, splitSource(row[f]).body);
+      const note = d.changes ? d.changes + ' word change' + (d.changes === 1 ? '' : 's') : 'no changes';
+      return `
+        <div class="cmp-field">
+          <div class="cmp-label">${SCRIPT_LABELS[f]} &middot; ${note}</div>
+          <div class="cmp-cols">
+            <div class="cmp-col"><div class="cmp-head">Original</div><div class="cmp-text">${renderDiffSide(d.left)}</div></div>
+            <div class="cmp-col"><div class="cmp-head">Edited (current)</div><div class="cmp-text">${renderDiffSide(d.right)}</div></div>
+          </div>
+        </div>`;
+    }).join('');
+    return `<div class="cmp-wrap"><p class="cmp-title">Original vs edited</p>${fieldsHtml}</div>`;
+  }
+
+  function editorBlock(row){
+    const d = scriptDrafts[row.Topic] || {};
+    const val = f => d[f] !== undefined ? d[f] : splitSource(row[f]).body;
+    const src = splitSource(row.Solution).source;
+    const area = (f, rows) => `
+      <label>${SCRIPT_LABELS[f]}
+        <textarea class="se-field" data-field="${f}" rows="${rows}" maxlength="7000">${escapeHtml(val(f))}</textarea>
+      </label>`;
+    return `
+      <div class="hp-custom script-editor" onclick="event.stopPropagation()">
+        ${area('Problem', 3)}
+        ${area('Solution', 9)}
+        ${src ? `<p class="src-note">The Source line stays as is: ${escapeHtml(src)}</p>` : ''}
+        ${area('Outro CTA', 3)}
+        <div class="hp-custom-btns">
+          <button class="hp-btn primary se-save">Save changes</button>
+          <button class="hp-btn se-cancel">Cancel</button>
+          <span class="st-meta">The original is saved automatically on your first edit.</span>
+        </div>
+      </div>`;
+  }
+
+  function scriptToolsHtml(row){
+    const edited = isEdited(row);
+    const editing = editingScript.has(row.Topic);
+    const comparing = comparingScript.has(row.Topic);
+    return `
+      <div class="script-tools" onclick="event.stopPropagation()">
+        ${editing ? '' : '<button class="hp-btn st-edit">&#9998; Edit script</button>'}
+        ${edited ? `<button class="hp-btn st-compare">${comparing ? 'Hide comparison' : 'Compare with original'}</button>
+        <button class="hp-link st-revert">Revert to original</button>
+        <span class="st-meta">Edited ${escapeHtml(formatDateDisplay(row['Last Edited']))}</span>` : ''}
+      </div>
+      ${editing ? editorBlock(row) : ''}
+      ${edited && comparing ? compareBlock(row) : ''}`;
+  }
+
+  async function postJSON(payload){
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  }
+
+  function scriptBackendMsg(err){
+    return err === 'unauthorized'
+      ? 'Script editing is not switched on yet. The updated Code.gs needs to be redeployed in Apps Script first.'
+      : 'Failed: ' + err;
+  }
+
+  async function saveScriptEdit(topic){
+    const row = allRows.find(r => r.Topic === topic);
+    if (!row) return;
+    const draft = scriptDrafts[topic] || {};
+    const fields = {};
+    SCRIPT_FIELDS.forEach(f => {
+      const cur = splitSource(row[f]);
+      const body = draft[f] !== undefined ? draft[f].trim() : cur.body;
+      const full = body + (cur.source ? '\n' + cur.source : '');
+      if (full !== (row[f] || '')) fields[f] = full;
+    });
+    if (!Object.keys(fields).length) {
+      editingScript.delete(topic); delete scriptDrafts[topic]; render();
+      return;
+    }
+    if (fields['Outro CTA'] !== undefined && !/follow us for more tech tips and updates/i.test(fields['Outro CTA'])
+        && !confirm('The Outro no longer ends with the standard "Don\'t forget to follow us..." line. Save anyway?')) return;
+    try {
+      const result = await postJSON({ action: 'editScript', topic, fields });
+      if (result.error) { alert(scriptBackendMsg(result.error)); return; }
+      SCRIPT_FIELDS.forEach(f => { if (result.fields && typeof result.fields[f] === 'string') row[f] = result.fields[f]; });
+      if (result.original !== undefined) row['Original Script'] = result.original;
+      if (result.lastEdited) row['Last Edited'] = result.lastEdited;
+      editingScript.delete(topic); delete scriptDrafts[topic];
+      if (isEdited(row)) comparingScript.add(topic);
+      render(); renderHookPicker();
+    } catch (err) {
+      alert('Could not reach the server: ' + err.message);
+    }
+  }
+
+  async function revertScriptEdit(topic){
+    const row = allRows.find(r => r.Topic === topic);
+    if (!row || !confirm('Revert this script to its original text? Your edits will be removed.')) return;
+    try {
+      const result = await postJSON({ action: 'revertScript', topic });
+      if (result.error) { alert(scriptBackendMsg(result.error)); return; }
+      SCRIPT_FIELDS.forEach(f => { if (result.fields && typeof result.fields[f] === 'string') row[f] = result.fields[f]; });
+      row['Original Script'] = ''; row['Last Edited'] = '';
+      comparingScript.delete(topic); editingScript.delete(topic); delete scriptDrafts[topic];
+      render(); renderHookPicker();
+    } catch (err) {
+      alert('Could not reach the server: ' + err.message);
+    }
+  }
+
+  function wireScriptTools(card){
+    const topic = card.dataset.topic;
+    const on = (sel, fn) => { const el = card.querySelector(sel); if (el) el.addEventListener('click', fn); };
+    on('.st-edit', () => { editingScript.add(topic); render(); });
+    on('.se-cancel', () => { editingScript.delete(topic); delete scriptDrafts[topic]; render(); });
+    on('.se-save', () => saveScriptEdit(topic));
+    on('.st-compare', () => { comparingScript.has(topic) ? comparingScript.delete(topic) : comparingScript.add(topic); render(); });
+    on('.st-revert', () => revertScriptEdit(topic));
+    card.querySelectorAll('.se-field').forEach(ta => {
+      ta.addEventListener('input', () => {
+        scriptDrafts[topic] = scriptDrafts[topic] || {};
+        scriptDrafts[topic][ta.dataset.field] = ta.value;
+      });
+    });
+  }
+
+  function scriptViewHtml(row){
+    const sol = splitSource(row.Solution);
+    return `
+      ${hookPhaseBlock(row)}
+      ${phaseBlock('p-problem', 'Problem', '3-10s', row.Problem)}
+      ${phaseBlock('p-solution', 'Solution', '10-40s', sol.body)}
+      ${sol.source ? `<p class="src-note">${escapeHtml(sol.source)}</p>` : ''}
+      ${phaseBlock('p-outro', 'Outro / CTA', '40-50s', row['Outro CTA'])}`;
+  }
+
+  function openScriptInTab(topic){
+    activeStatus = 'all'; activePillar = 'all'; activeMonth = 'all'; activeProduced = 'all'; activeHookFilter = 'all';
+    document.getElementById('searchBox').value = topic;
+    showTab('scripts');
+    renderStatusPills(); renderProducedPills(); renderHookFilterPills(); renderMonthFilter();
+    editingScript.add(topic);
+    render();
+    const card = [...document.querySelectorAll('.script-card')].find(c => c.dataset.topic === topic);
+    if (card) { card.setAttribute('open', ''); card.scrollIntoView({ block: 'start' }); }
   }
 
   function renderReport(){
