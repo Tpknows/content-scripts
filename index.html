@@ -377,6 +377,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     <p class="side-heading">Final Hook</p>
     <div class="pill-row" id="hookPills"></div>
 
+    <p class="side-heading">Script</p>
+    <div class="pill-row" id="editPills"></div>
+
     <p class="side-heading">Month</p>
     <select id="monthFilter" class="side-search" onchange="activeMonth = this.value; render();">
       <option value="all">All Months</option>
@@ -464,6 +467,13 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     { val:'picked', label:'Hook Picked' },
     { val:'unpicked', label:'Not Picked Yet' },
   ];
+  // Script filter: "edited" = the team changed the script text in the app
+  // (the sheet holds a saved "Original Script" for it).
+  const EDIT_FILTER_OPTIONS = [
+    { val:'all', label:'All' },
+    { val:'edited', label:'Edited' },
+    { val:'original', label:'Not Edited' },
+  ];
   // Embedded backend endpoint — not shown in the UI.
   const API_URL = "https://script.google.com/macros/s/AKfycbw0BE344Ds8OMnaK5EZ3zbRS_ToYGqf0EELwW_UkerTxvq2AFhjw_xlhQJEVdmbM3ZF3A/exec";
 
@@ -475,6 +485,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   let activeMonth = 'all';
   let activeProduced = 'all';
   let activeHookFilter = 'all';
+  let activeEditFilter = 'all';
   let reportMonth = 'all';
   let reportPillar = 'all';
 
@@ -825,6 +836,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       renderStatusPills();
       renderProducedPills();
       renderHookFilterPills();
+      renderEditFilterPills();
       renderMonthFilter();
       render();
       renderReport();
@@ -866,7 +878,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     const search = document.getElementById('searchBox').value.trim().toLowerCase();
     const searchOk = !search || (row.Topic || '').toLowerCase().includes(search) || (row.Pillar || '').toLowerCase().includes(search);
 
-    return statusOk && pillarOk && monthOk && producedOk && hookOk && searchOk;
+    const editedOk = (activeEditFilter === 'all') || (isEdited(row) === (activeEditFilter === 'edited'));
+
+    return statusOk && pillarOk && monthOk && producedOk && hookOk && editedOk && searchOk;
   }
 
   function renderMonthFilter(){
@@ -914,6 +928,19 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     }).join('');
     wrap.querySelectorAll('.pill').forEach(btn => {
       btn.addEventListener('click', () => { activeHookFilter = btn.dataset.val; renderHookFilterPills(); render(); });
+    });
+  }
+
+  function renderEditFilterPills(){
+    const wrap = document.getElementById('editPills');
+    const edited = allRows.filter(isEdited).length;
+    const counts = { edited, original: allRows.length - edited };
+    wrap.innerHTML = EDIT_FILTER_OPTIONS.map(o => {
+      const n = o.val === 'all' ? '' : ' (' + counts[o.val] + ')';
+      return `<button class="pill ${activeEditFilter === o.val ? 'active' : ''}" data-val="${o.val}">${escapeHtml(o.label + n)}</button>`;
+    }).join('');
+    wrap.querySelectorAll('.pill').forEach(btn => {
+      btn.addEventListener('click', () => { activeEditFilter = btn.dataset.val; renderEditFilterPills(); render(); });
     });
   }
 
@@ -1246,7 +1273,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       if (result.lastEdited) row['Last Edited'] = result.lastEdited;
       editingScript.delete(topic); delete scriptDrafts[topic];
       if (isEdited(row)) comparingScript.add(topic);
-      render(); renderHookPicker();
+      renderEditFilterPills(); render(); renderHookPicker();
     } catch (err) {
       alert('Could not reach the server: ' + err.message);
     }
@@ -1261,7 +1288,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       SCRIPT_FIELDS.forEach(f => { if (result.fields && typeof result.fields[f] === 'string') row[f] = result.fields[f]; });
       row['Original Script'] = ''; row['Last Edited'] = '';
       comparingScript.delete(topic); editingScript.delete(topic); delete scriptDrafts[topic];
-      render(); renderHookPicker();
+      renderEditFilterPills(); render(); renderHookPicker();
     } catch (err) {
       alert('Could not reach the server: ' + err.message);
     }
@@ -1294,10 +1321,10 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   }
 
   function openScriptInTab(topic){
-    activeStatus = 'all'; activePillar = 'all'; activeMonth = 'all'; activeProduced = 'all'; activeHookFilter = 'all';
+    activeStatus = 'all'; activePillar = 'all'; activeMonth = 'all'; activeProduced = 'all'; activeHookFilter = 'all'; activeEditFilter = 'all';
     document.getElementById('searchBox').value = topic;
     showTab('scripts');
-    renderStatusPills(); renderProducedPills(); renderHookFilterPills(); renderMonthFilter();
+    renderStatusPills(); renderProducedPills(); renderHookFilterPills(); renderEditFilterPills(); renderMonthFilter();
     editingScript.add(topic);
     render();
     const card = [...document.querySelectorAll('.script-card')].find(c => c.dataset.topic === topic);
