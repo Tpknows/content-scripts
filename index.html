@@ -413,6 +413,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
         <option value="all">All</option>
       </select>
       <select id="hookPillarSel" onchange="hookPillar = this.value; renderHookPicker();"></select>
+      <select id="hookEditSel" onchange="hookEditFilter = this.value; renderHookPicker();"></select>
       <input type="search" id="hookSearch" class="side-search" style="width:200px; margin:0;" placeholder="Search topics..." oninput="renderHookPicker()">
     </div>
   </div>
@@ -508,6 +509,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   // Older scripts have a single plain hook and no options (nothing to pick).
   let hookFilter = 'needs';
   let hookPillar = 'all';
+  let hookEditFilter = 'all';
   const recentPicks = new Set();
 
   function parseHook(text){
@@ -611,12 +613,18 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     pillarSel.value = hookPillar;
     document.getElementById('hookFilterSel').value = hookFilter;
 
+    const editedN = items.filter(x => isEdited(x.r)).length;
+    const editSel = document.getElementById('hookEditSel');
+    editSel.innerHTML = `<option value="all">All scripts</option><option value="edited">Edited (${editedN})</option><option value="original">Not edited (${total - editedN})</option>`;
+    editSel.value = hookEditFilter;
+
     const search = document.getElementById('hookSearch').value.trim().toLowerCase();
     const shown = items.filter(x => {
       const done = !!x.h.final;
       if (hookFilter === 'needs' && done && !recentPicks.has(x.r.Topic)) return false;
       if (hookFilter === 'picked' && !done) return false;
       if (hookPillar !== 'all' && x.r.Pillar !== hookPillar) return false;
+      if (hookEditFilter !== 'all' && isEdited(x.r) !== (hookEditFilter === 'edited')) return false;
       if (search && !(x.r.Topic || '').toLowerCase().includes(search)) return false;
       return true;
     });
@@ -633,7 +641,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
     body.innerHTML = shown.map(({ r, h }) => `
       <div class="hp-card ${h.final ? 'done' : ''}" data-topic="${attr(r.Topic)}">
-        <div class="hp-title"><span>${escapeHtml(r.Topic.replace(/\s*\(October\)\s*$/, ''))}</span><span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span></div>
+        <div class="hp-title"><span>${escapeHtml(r.Topic.replace(/\s*\(October\)\s*$/, ''))}</span><span class="summary-meta">${isEdited(r) ? '<span class="produced-badge is-edited">&#9998; Edited</span>' : ''}<span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span></span></div>
         <div class="hp-meta">${escapeHtml(r.Pillar || '')}${h.tone ? ' &middot; Tone: ' + escapeHtml(h.tone) : ''}</div>
         <div class="hp-opts">
           ${h.options.map(o => `
@@ -663,7 +671,6 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
           <summary>View full script${isEdited(r) ? ' (edited)' : ''}</summary>
           <div class="hp-script-body">
             ${scriptViewHtml(r)}
-            <p><button class="hp-link hp-edit-script">Edit this script in the Scripts tab</button></p>
           </div>
         </details>
         <div class="hp-foot">
@@ -688,8 +695,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
       const sv = card.querySelector('.hp-script');
       if (sv) sv.addEventListener('toggle', () => { sv.open ? openScriptView.add(topic) : openScriptView.delete(topic); });
-      const editLink = card.querySelector('.hp-edit-script');
-      if (editLink) editLink.addEventListener('click', () => openScriptInTab(topic));
+      wireScriptTools(card);
 
       const openBtn = card.querySelector('.hp-c-open');
       if (openBtn) openBtn.addEventListener('click', () => {
@@ -1297,10 +1303,10 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   function wireScriptTools(card){
     const topic = card.dataset.topic;
     const on = (sel, fn) => { const el = card.querySelector(sel); if (el) el.addEventListener('click', fn); };
-    on('.st-edit', () => { editingScript.add(topic); render(); });
-    on('.se-cancel', () => { editingScript.delete(topic); delete scriptDrafts[topic]; render(); });
+    on('.st-edit', () => { editingScript.add(topic); openScriptView.add(topic); refreshViews(); });
+    on('.se-cancel', () => { editingScript.delete(topic); delete scriptDrafts[topic]; refreshViews(); });
     on('.se-save', () => saveScriptEdit(topic));
-    on('.st-compare', () => { comparingScript.has(topic) ? comparingScript.delete(topic) : comparingScript.add(topic); render(); });
+    on('.st-compare', () => { comparingScript.has(topic) ? comparingScript.delete(topic) : comparingScript.add(topic); openScriptView.add(topic); refreshViews(); });
     on('.st-revert', () => revertScriptEdit(topic));
     card.querySelectorAll('.se-field').forEach(ta => {
       ta.addEventListener('input', () => {
@@ -1313,6 +1319,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   function scriptViewHtml(row){
     const sol = splitSource(row.Solution);
     return `
+      ${scriptToolsHtml(row)}
       ${hookPhaseBlock(row)}
       ${phaseBlock('p-problem', 'Problem', '3-10s', row.Problem)}
       ${phaseBlock('p-solution', 'Solution', '10-40s', sol.body)}
@@ -1320,15 +1327,11 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       ${phaseBlock('p-outro', 'Outro / CTA', '40-50s', row['Outro CTA'])}`;
   }
 
-  function openScriptInTab(topic){
-    activeStatus = 'all'; activePillar = 'all'; activeMonth = 'all'; activeProduced = 'all'; activeHookFilter = 'all'; activeEditFilter = 'all';
-    document.getElementById('searchBox').value = topic;
-    showTab('scripts');
-    renderStatusPills(); renderProducedPills(); renderHookFilterPills(); renderEditFilterPills(); renderMonthFilter();
-    editingScript.add(topic);
+  // The script editor shows in both the Scripts tab and the Hook Picker, so
+  // any edit-state change re-renders both.
+  function refreshViews(){
     render();
-    const card = [...document.querySelectorAll('.script-card')].find(c => c.dataset.topic === topic);
-    if (card) { card.setAttribute('open', ''); card.scrollIntoView({ block: 'start' }); }
+    renderHookPicker();
   }
 
   function renderReport(){
