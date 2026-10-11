@@ -294,6 +294,24 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 .hook-others{margin-top:8px; font-size:12.5px; color:var(--ink-2);}
 .hook-others summary{cursor:pointer; color:var(--ink-3); font-family:var(--font-mono); font-size:11px;}
 
+/* ---------- active filter chips + more filters ---------- */
+.chip-row{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px;}
+.chip-count{font-size:12px; font-family:var(--font-mono); color:var(--ink-3);}
+.chip{
+  display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+  background:var(--green-soft); border:1px solid var(--green); color:var(--ink);
+  border-radius:20px; padding:4px 11px; font-size:12px; font-weight:600; font-family:var(--font-ui);
+}
+.chip:hover{background:var(--surface-3);}
+.more-filters{margin:0 0 18px;}
+.more-filters > summary{
+  cursor:pointer; list-style:none; font-size:12px; font-weight:700; color:var(--green-dk);
+  font-family:var(--font-mono); padding:4px 0 10px;
+}
+.more-filters > summary::-webkit-details-marker{display:none;}
+.more-filters > summary::before{content:"+ ";}
+.more-filters[open] > summary::before{content:"\2212 ";}
+
 /* ---------- script editor + comparison ---------- */
 .script-tools{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:10px 0 4px;}
 .st-meta{font-size:12px; color:var(--ink-3); font-family:var(--font-mono);}
@@ -366,27 +384,30 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       </div>
     </div>
 
-    <input type="search" id="searchBox" class="side-search" placeholder="Search topics..." oninput="render()">
+    <input type="search" id="searchBox" class="side-search" placeholder="Search topics..." oninput="searchText = this.value; refreshViews();">
 
     <p class="side-heading">Status</p>
     <div class="pill-row" id="statusPills"></div>
 
-    <p class="side-heading">Produced</p>
-    <div class="pill-row" id="producedPills"></div>
-
-    <p class="side-heading">Final Hook</p>
-    <div class="pill-row" id="hookPills"></div>
-
-    <p class="side-heading">Script</p>
-    <div class="pill-row" id="editPills"></div>
-
     <p class="side-heading">Month</p>
-    <select id="monthFilter" class="side-search" onchange="activeMonth = this.value; render();">
+    <select id="monthFilter" class="side-search" onchange="activeMonth = this.value; refreshAll();">
       <option value="all">All Months</option>
     </select>
 
     <p class="side-heading">Pillar</p>
     <div class="pillar-list" id="pillarList"></div>
+
+    <details class="more-filters" id="moreFilters">
+      <summary id="moreSummary">More filters</summary>
+      <p class="side-heading">Produced</p>
+      <div class="pill-row" id="producedPills"></div>
+
+      <p class="side-heading">Hook</p>
+      <div class="pill-row" id="hookPills"></div>
+
+      <p class="side-heading">Script</p>
+      <div class="pill-row" id="editPills"></div>
+    </details>
 
     <div class="legend">
       <div class="item"><span class="dot" style="background:var(--seg-hook)"></span>Hook 0-3s</div>
@@ -398,6 +419,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
   <main class="main">
     <p class="status-line" id="statusLine">&nbsp;</p>
+    <div class="chip-row" id="scriptChips"></div>
     <div id="content"></div>
   </main>
 
@@ -412,13 +434,15 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
         <option value="picked">Picked</option>
         <option value="all">All</option>
       </select>
-      <select id="hookPillarSel" onchange="hookPillar = this.value; renderHookPicker();"></select>
-      <select id="hookEditSel" onchange="hookEditFilter = this.value; renderHookPicker();"></select>
-      <input type="search" id="hookSearch" class="side-search" style="width:200px; margin:0;" placeholder="Search topics..." oninput="renderHookPicker()">
+      <select id="hookMonthSel" onchange="activeMonth = this.value; refreshAll();"></select>
+      <select id="hookPillarSel" onchange="activePillar = this.value; refreshAll();"></select>
+      <select id="hookEditSel" onchange="activeEditFilter = this.value; refreshAll();"></select>
+      <input type="search" id="hookSearch" class="side-search" style="width:200px; margin:0;" placeholder="Search topics..." oninput="searchText = this.value; refreshViews();">
     </div>
   </div>
   <p class="hp-intro">Each script has 3 hook options. Click the one the team agrees on and it becomes that script's final hook. Click a different one anytime to change it. None of them work? Use "+ Write your own (Option 4)" on the card.</p>
   <p class="status-line" id="hookSummary">&nbsp;</p>
+  <div class="chip-row" id="hookChips"></div>
   <div id="hookBody"></div>
 </section>
 
@@ -487,6 +511,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   let activeProduced = 'all';
   let activeHookFilter = 'all';
   let activeEditFilter = 'all';
+  let searchText = '';
   let reportMonth = 'all';
   let reportPillar = 'all';
 
@@ -508,8 +533,6 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   //   • Option 3 - Problem statement: ...
   // Older scripts have a single plain hook and no options (nothing to pick).
   let hookFilter = 'needs';
-  let hookPillar = 'all';
-  let hookEditFilter = 'all';
   const recentPicks = new Set();
 
   function parseHook(text){
@@ -605,32 +628,45 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     badge.textContent = total - pickedCount;
     badge.classList.toggle('zero', total - pickedCount === 0);
 
+    // Month, Pillar, Edited and search are shared with the Scripts tab.
     const pillarSel = document.getElementById('hookPillarSel');
-    const pillars = Array.from(new Set(items.map(x => x.r.Pillar).filter(Boolean)));
     pillarSel.innerHTML = '<option value="all">All Pillars</option>' +
-      pillars.map(p => `<option value="${attr(p)}">${escapeHtml(p)}</option>`).join('');
-    if (!pillars.includes(hookPillar)) hookPillar = 'all';
-    pillarSel.value = hookPillar;
+      getAllPillars().map(p => `<option value="${attr(p)}">${escapeHtml(p)}</option>`).join('');
+    pillarSel.value = activePillar;
     document.getElementById('hookFilterSel').value = hookFilter;
+
+    const months = Array.from(new Set(allRows.map(r => monthKey(r['Date Added'])).filter(Boolean))).sort().reverse();
+    const monthSel = document.getElementById('hookMonthSel');
+    monthSel.innerHTML = '<option value="all">All months</option>' +
+      months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
+    monthSel.value = activeMonth;
 
     const editedN = items.filter(x => isEdited(x.r)).length;
     const editSel = document.getElementById('hookEditSel');
     editSel.innerHTML = `<option value="all">All scripts</option><option value="edited">Edited (${editedN})</option><option value="original">Not edited (${total - editedN})</option>`;
-    editSel.value = hookEditFilter;
+    editSel.value = activeEditFilter;
 
-    const search = document.getElementById('hookSearch').value.trim().toLowerCase();
+    const hookSearchEl = document.getElementById('hookSearch');
+    if (hookSearchEl.value !== searchText) hookSearchEl.value = searchText;
+    const search = searchText.trim().toLowerCase();
     const shown = items.filter(x => {
       const done = !!x.h.final;
       if (hookFilter === 'needs' && done && !recentPicks.has(x.r.Topic)) return false;
       if (hookFilter === 'picked' && !done) return false;
-      if (hookPillar !== 'all' && x.r.Pillar !== hookPillar) return false;
-      if (hookEditFilter !== 'all' && isEdited(x.r) !== (hookEditFilter === 'edited')) return false;
+      if (activePillar !== 'all' && x.r.Pillar !== activePillar) return false;
+      if (activeMonth !== 'all' && monthKey(x.r['Date Added']) !== activeMonth) return false;
+      if (activeEditFilter !== 'all' && isEdited(x.r) !== (activeEditFilter === 'edited')) return false;
       if (search && !(x.r.Topic || '').toLowerCase().includes(search)) return false;
       return true;
     });
 
     const summary = document.getElementById('hookSummary');
-    summary.textContent = pickedCount + ' of ' + total + ' scripts have a final hook. Showing ' + shown.length + '.';
+    summary.textContent = pickedCount + ' of ' + total + ' scripts have a final hook.';
+
+    const chips = [];
+    if (hookFilter !== 'needs') chips.push({ label: 'Show: ' + (hookFilter === 'picked' ? 'Picked' : 'All'), clear: () => { hookFilter = 'needs'; } });
+    addSharedChips(chips);
+    renderChips('hookChips', chips, shown.length, total, resetHookFilters);
 
     const body = document.getElementById('hookBody');
     if (!shown.length) {
@@ -881,7 +917,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       hookOk = activeHookFilter === 'picked' ? h.final > 0 : (h.options.length > 0 && !h.final);
     }
 
-    const search = document.getElementById('searchBox').value.trim().toLowerCase();
+    const search = searchText.trim().toLowerCase();
     const searchOk = !search || (row.Topic || '').toLowerCase().includes(search) || (row.Pillar || '').toLowerCase().includes(search);
 
     const editedOk = (activeEditFilter === 'all') || (isEdited(row) === (activeEditFilter === 'edited'));
@@ -1013,6 +1049,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     );
 
     const filtered = allRows.filter(matchesFilter);
+    renderScriptChips(filtered.length);
 
     const byPillar = {};
     filtered.forEach(r => {
@@ -1330,8 +1367,81 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   // The script editor shows in both the Scripts tab and the Hook Picker, so
   // any edit-state change re-renders both.
   function refreshViews(){
+    syncSearchInputs();
     render();
     renderHookPicker();
+  }
+
+  // Re-draw every filter control as well (used when a shared filter such as
+  // Month, Pillar, Edited or search changes from either tab).
+  function refreshAll(){
+    renderStatusPills(); renderProducedPills(); renderHookFilterPills(); renderEditFilterPills(); renderMonthFilter();
+    refreshViews();
+  }
+
+  // --- Active filter chips, reset, and "More filters" ---
+  function addSharedChips(chips){
+    if (activeMonth !== 'all') chips.push({ label: 'Month: ' + monthLabel(activeMonth), clear: () => { activeMonth = 'all'; } });
+    if (activePillar !== 'all') chips.push({ label: 'Pillar: ' + activePillar, clear: () => { activePillar = 'all'; } });
+    if (activeEditFilter !== 'all') chips.push({ label: activeEditFilter === 'edited' ? 'Edited scripts' : 'Not edited', clear: () => { activeEditFilter = 'all'; } });
+    if (searchText.trim()) chips.push({ label: 'Search: "' + searchText.trim() + '"', clear: () => { searchText = ''; syncSearchInputs(); } });
+  }
+
+  function syncSearchInputs(){
+    ['searchBox', 'hookSearch'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.value !== searchText) el.value = searchText;
+    });
+  }
+
+  function renderChips(containerId, chips, shown, total, resetFn){
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.innerHTML = `<span class="chip-count">Showing ${shown} of ${total}</span>` +
+      chips.map((c, i) => `<button class="chip" data-i="${i}">${escapeHtml(c.label)} &#10005;</button>`).join('') +
+      (chips.length ? '<button class="hp-link chip-reset">Reset filters</button>' : '');
+    el.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => { chips[+b.dataset.i].clear(); refreshAll(); }));
+    const reset = el.querySelector('.chip-reset');
+    if (reset) reset.addEventListener('click', () => { resetFn(); syncSearchInputs(); refreshAll(); });
+  }
+
+  function resetSharedFilters(){
+    activeMonth = 'all'; activePillar = 'all'; activeEditFilter = 'all'; searchText = '';
+  }
+  function resetScriptFilters(){
+    resetSharedFilters();
+    activeStatus = 'approved_published'; activeProduced = 'all'; activeHookFilter = 'all';
+  }
+  function resetHookFilters(){
+    resetSharedFilters();
+    hookFilter = 'needs';
+  }
+
+  let lastMoreCount = 0;
+  function renderMoreFilters(){
+    const n = (activeProduced !== 'all') + (activeHookFilter !== 'all') + (activeEditFilter !== 'all');
+    document.getElementById('moreSummary').textContent = n ? 'More filters (' + n + ' on)' : 'More filters';
+    if (n > 0 && lastMoreCount === 0) document.getElementById('moreFilters').open = true;
+    lastMoreCount = n;
+  }
+
+  function renderScriptChips(shown){
+    const chips = [];
+    if (activeStatus !== 'approved_published') {
+      const label = (STATUS_OPTIONS.find(o => o.val === activeStatus) || {}).label || activeStatus;
+      chips.push({ label: 'Status: ' + label, clear: () => { activeStatus = 'approved_published'; } });
+    }
+    if (activeProduced !== 'all') {
+      const label = (PRODUCED_OPTIONS.find(o => o.val === activeProduced) || {}).label || activeProduced;
+      chips.push({ label: 'Produced: ' + label, clear: () => { activeProduced = 'all'; } });
+    }
+    if (activeHookFilter !== 'all') {
+      const label = (HOOK_FILTER_OPTIONS.find(o => o.val === activeHookFilter) || {}).label || activeHookFilter;
+      chips.push({ label: 'Hook: ' + label, clear: () => { activeHookFilter = 'all'; } });
+    }
+    addSharedChips(chips);
+    renderChips('scriptChips', chips, shown, allRows.length, resetScriptFilters);
+    renderMoreFilters();
   }
 
   function renderReport(){
