@@ -289,10 +289,16 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 .hook-final{font-weight:600;}
 .hook-pick-tag{display:inline-block; font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--green-dk); font-weight:700; margin-bottom:2px;}
 .hook-screen-line{margin:8px 0 0; font-size:13.5px;}
+.hook-sfx-line{margin:8px 0 0; font-size:13px; color:var(--ink-2);}
+.hp-sfx{font-size:12.5px; color:var(--ink-2); line-height:1.5; margin:-4px 0 11px;}
+.hp-sfx-label{display:inline-block; font-size:10px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--green-dk); font-weight:700; margin-right:6px;}
 .hook-pending{margin:0 0 6px; font-size:12px; color:var(--amber); font-family:var(--font-mono);}
 .hook-opt-line{margin:4px 0; font-size:13px; color:var(--ink-2);}
 .hook-others{margin-top:8px; font-size:12.5px; color:var(--ink-2);}
 .hook-others summary{cursor:pointer; color:var(--ink-3); font-family:var(--font-mono); font-size:11px;}
+.hook-specs{margin:8px 0 11px; font-size:12.5px; color:var(--ink-2); line-height:1.5;}
+.hook-specs summary{cursor:pointer; color:var(--green-dk); font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:700;}
+.hook-spec-line{margin:6px 0 0;}
 
 /* ---------- active filter chips + more filters ---------- */
 .chip-row{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px;}
@@ -394,6 +400,11 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       <option value="all">All Months</option>
     </select>
 
+    <p class="side-heading">Upload date</p>
+    <select id="dayFilter" class="side-search" onchange="pickDay(this.value);">
+      <option value="all">All dates</option>
+    </select>
+
     <p class="side-heading">Pillar</p>
     <div class="pillar-list" id="pillarList"></div>
 
@@ -435,6 +446,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
         <option value="all">All</option>
       </select>
       <select id="hookMonthSel" onchange="activeMonth = this.value; refreshAll();"></select>
+      <select id="hookDaySel" onchange="pickDay(this.value);"></select>
       <select id="hookPillarSel" onchange="activePillar = this.value; refreshAll();"></select>
       <select id="hookEditSel" onchange="activeEditFilter = this.value; refreshAll();"></select>
       <input type="search" id="hookSearch" class="side-search" style="width:200px; margin:0;" placeholder="Search topics..." oninput="searchText = this.value; refreshViews();">
@@ -508,6 +520,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   let activeStatus = 'approved_published';
   let activePillar = 'all';
   let activeMonth = 'all';
+  let activeDay = 'all';
   let activeProduced = 'all';
   let activeHookFilter = 'all';
   let activeEditFilter = 'all';
@@ -528,6 +541,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   // A script's Hook field holds up to 3 options:
   //   [Tone: ...]
   //   [FINAL: 2]          <- present only after the team picks
+  //   [SFX: ...]          <- sound effects for the hook (since 2026-10-21)
   //   • Option 1 - Statement Hook: ...
   //   • Option 2 - Question Hook: ...
   //   • Option 3 - Problem statement: ...
@@ -539,6 +553,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     const raw = (text || '').toString();
     const toneM = raw.match(/\[Tone:\s*([^\]]*)\]/);
     const finalM = raw.match(/\[FINAL:\s*(\d)\]/);
+    const sfxM = raw.match(/\[SFX:\s*([^\]]*)\]/);
     const options = [];
     raw.split('\n').forEach(line => {
       const m = line.match(/^\s*•\s*Option\s+(\d)\s*-\s*([^:]+):\s*(.+)$/);
@@ -546,7 +561,26 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       const t = line.match(/^\s*Text hook:\s*(.+)$/i);
       if (t && options.length) options[options.length - 1].screen = t[1].trim();
     });
-    return { raw, tone: toneM ? toneM[1].trim() : '', final: finalM ? +finalM[1] : 0, options };
+    return { raw, tone: toneM ? toneM[1].trim() : '', sfx: sfxM ? sfxM[1].trim() : '', final: finalM ? +finalM[1] : 0, options };
+  }
+
+  // Hook Specifics column (added 2026-10-29): the timed breakdown of each
+  // option's first 3 seconds, one "Option N (label): ..." line per option.
+  function parseSpecifics(text){
+    const out = {};
+    (text || '').toString().split('\n').forEach(line => {
+      const m = line.match(/^\s*Option\s+(\d)\s*(?:\([^)]*\))?\s*:\s*(.+)$/);
+      if (m) out[+m[1]] = m[2].trim();
+    });
+    return out;
+  }
+
+  function specificsHtml(row, onlyN){
+    const sp = parseSpecifics(row['Hook Specifics']);
+    const ns = Object.keys(sp).map(Number).filter(n => !onlyN || n === onlyN);
+    if (!ns.length) return '';
+    return `<details class="hook-specs"><summary>Hook specifics${onlyN ? ' (Option ' + onlyN + ')' : ''}</summary>${
+      ns.map(n => `<p class="hook-spec-line">${onlyN ? '' : `<strong>Option ${n}</strong><br>`}${escapeHtml(sp[n])}</p>`).join('')}</details>`;
   }
 
   function attr(s){ return escapeHtml(s).replace(/"/g, '&quot;'); }
@@ -640,6 +674,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     monthSel.innerHTML = '<option value="all">All months</option>' +
       months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
     monthSel.value = activeMonth;
+    const daySel = document.getElementById('hookDaySel');
+    daySel.innerHTML = dayOptionsHtml();
+    daySel.value = activeDay;
 
     const editedN = items.filter(x => isEdited(x.r)).length;
     const editSel = document.getElementById('hookEditSel');
@@ -655,6 +692,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       if (hookFilter === 'picked' && !done) return false;
       if (activePillar !== 'all' && x.r.Pillar !== activePillar) return false;
       if (activeMonth !== 'all' && monthKey(x.r['Date Added']) !== activeMonth) return false;
+      if (activeDay !== 'all' && dayKey(x.r['Date Added']) !== activeDay) return false;
       if (activeEditFilter !== 'all' && isEdited(x.r) !== (activeEditFilter === 'edited')) return false;
       if (search && !(x.r.Topic || '').toLowerCase().includes(search)) return false;
       return true;
@@ -679,6 +717,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       <div class="hp-card ${h.final ? 'done' : ''}" data-topic="${attr(r.Topic)}">
         <div class="hp-title"><span>${escapeHtml(r.Topic.replace(/\s*\(October\)\s*$/, ''))}</span><span class="summary-meta">${isEdited(r) ? '<span class="produced-badge is-edited">&#9998; Edited</span>' : ''}<span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span></span></div>
         <div class="hp-meta">${escapeHtml(r.Pillar || '')}${h.tone ? ' &middot; Tone: ' + escapeHtml(h.tone) : ''}</div>
+        ${h.sfx ? `<div class="hp-sfx"><span class="hp-sfx-label">Sound FX</span>${escapeHtml(h.sfx)}</div>` : ''}
         <div class="hp-opts">
           ${h.options.map(o => `
             <button class="hp-opt ${h.final === o.n ? 'selected' : ''}" data-n="${o.n}">
@@ -687,6 +726,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
               ${o.screen ? `<span class="hp-screen"><span class="hp-screen-label">On-screen text</span>${escapeHtml(o.screen)}</span>` : ''}
             </button>`).join('')}
         </div>
+        ${specificsHtml(r)}
         ${editingCustom.has(r.Topic) ? (() => {
           const cu = h.options.find(o => o.n === 4);
           return `
@@ -772,6 +812,8 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     } else {
       inner += `<p class="hook-pending">Not picked yet. Choose one in the Hook Picker tab.</p>${optLines(h.options)}`;
     }
+    inner += specificsHtml(r, chosen && chosen.n !== 4 ? chosen.n : 0);
+    if (h.sfx) inner += `<p class="hook-sfx-line"><span class="hook-pick-tag">Sound FX</span><br>${escapeHtml(h.sfx)}</p>`;
     if (h.tone) inner += `<p class="phase-time" style="margin:6px 0 0;">Tone: ${escapeHtml(h.tone)}</p>`;
     return `
       <div class="phase p-hook">
@@ -848,6 +890,35 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     return `${p.year}-${String(p.month).padStart(2, '0')}`;
   }
 
+  // Upload date filter (added 2026-10-29): one calendar day of Date Added.
+  function dayKey(value){
+    const p = parseDateParts(value);
+    if (!p) return '';
+    return `${p.year}-${String(p.month).padStart(2, '0')}-${String(p.day).padStart(2, '0')}`;
+  }
+
+  function dayLabel(key){
+    const [y, m, d] = key.split('-');
+    return `${MONTH_NAMES[+m - 1]} ${+d}, ${y}`;
+  }
+
+  // New uploads are usually Drafts, which the Scripts tab hides by default
+  // (Approved+Published), so picking a date also widens Status to All.
+  function pickDay(value){
+    activeDay = value;
+    if (value !== 'all' && activeStatus === 'approved_published') activeStatus = 'all';
+    refreshAll();
+  }
+
+  function dayOptionsHtml(){
+    const counts = {};
+    allRows.forEach(r => { const k = dayKey(r['Date Added']); if (k) counts[k] = (counts[k] || 0) + 1; });
+    const days = Object.keys(counts).sort().reverse();
+    if (activeDay !== 'all' && !counts[activeDay]) activeDay = 'all';
+    return '<option value="all">All upload dates</option>' +
+      days.map(k => `<option value="${k}">${dayLabel(k)} (${counts[k]})</option>`).join('');
+  }
+
   function monthLabel(key){
     const [y, m] = key.split('-');
     return `${MONTH_NAMES[+m - 1]} ${y}`;
@@ -910,6 +981,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
     const pillarOk = (activePillar === 'all') || ((row.Pillar || '') === activePillar);
     const monthOk = (activeMonth === 'all') || (monthKey(row['Date Added']) === activeMonth);
+    const dayOk = (activeDay === 'all') || (dayKey(row['Date Added']) === activeDay);
     const producedOk = (activeProduced === 'all') || (isProduced(row) === (activeProduced === 'yes'));
     let hookOk = true;
     if (activeHookFilter !== 'all') {
@@ -922,7 +994,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
     const editedOk = (activeEditFilter === 'all') || (isEdited(row) === (activeEditFilter === 'edited'));
 
-    return statusOk && pillarOk && monthOk && producedOk && hookOk && editedOk && searchOk;
+    return statusOk && pillarOk && monthOk && dayOk && producedOk && hookOk && editedOk && searchOk;
   }
 
   function renderMonthFilter(){
@@ -934,6 +1006,10 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       months.map(m => `<option value="${m}">${monthLabel(m)}</option>`).join('');
     activeMonth = months.includes(prev) ? prev : 'all';
     select.value = activeMonth;
+
+    const daySelect = document.getElementById('dayFilter');
+    daySelect.innerHTML = dayOptionsHtml();
+    daySelect.value = activeDay;
   }
 
   function renderStatusPills(){
@@ -1382,6 +1458,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   // --- Active filter chips, reset, and "More filters" ---
   function addSharedChips(chips){
     if (activeMonth !== 'all') chips.push({ label: 'Month: ' + monthLabel(activeMonth), clear: () => { activeMonth = 'all'; } });
+    if (activeDay !== 'all') chips.push({ label: 'Uploaded: ' + dayLabel(activeDay), clear: () => { activeDay = 'all'; } });
     if (activePillar !== 'all') chips.push({ label: 'Pillar: ' + activePillar, clear: () => { activePillar = 'all'; } });
     if (activeEditFilter !== 'all') chips.push({ label: activeEditFilter === 'edited' ? 'Edited scripts' : 'Not edited', clear: () => { activeEditFilter = 'all'; } });
     if (searchText.trim()) chips.push({ label: 'Search: "' + searchText.trim() + '"', clear: () => { searchText = ''; syncSearchInputs(); } });
@@ -1406,7 +1483,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   }
 
   function resetSharedFilters(){
-    activeMonth = 'all'; activePillar = 'all'; activeEditFilter = 'all'; searchText = '';
+    activeMonth = 'all'; activeDay = 'all'; activePillar = 'all'; activeEditFilter = 'all'; searchText = '';
   }
   function resetScriptFilters(){
     resetSharedFilters();
