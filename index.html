@@ -1171,7 +1171,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
               <span class="summary-meta">
                 <span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span>
                 <span class="produced-badge ${isProduced(r) ? 'is-yes' : 'is-no'}">${isProduced(r) ? '&#10003; Produced' : '&#9675; Not Produced'}</span>
-                ${(r['Bianca Transfer'] === 'Ready' || r['Bianca Transfer'] === 'Sent') ? `<span class="produced-badge ${r['Bianca Transfer'] === 'Sent' ? 'is-yes' : 'is-no'}">&#8594; ${escapeHtml(r['Bianca Transfer'])}</span>` : ''}
+                ${(r['Transfer to Tracker'] === 'Ready' || r['Transfer to Tracker'] === 'Sent') ? `<span class="produced-badge ${r['Transfer to Tracker'] === 'Sent' ? 'is-yes' : 'is-no'}">&#8594; ${escapeHtml(r['Transfer to Tracker'])}</span>` : ''}
                 ${isEdited(r) ? '<span class="produced-badge is-edited">&#9998; Edited</span>' : ''}
                 <span class="date-tag">${escapeHtml(formatDateDisplay(r['Date Added']))}</span>
                 <span class="plus"></span>
@@ -1189,8 +1189,8 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
               <label>Produced
                 <select class="edit-field" data-field="Produced">${producedOptionsHtml(isProduced(r) ? 'Yes' : 'No')}</select>
               </label>
-              <label>Bianca Transfer
-                <select class="edit-field" data-field="Bianca Transfer">${biancaOptionsHtml(r['Bianca Transfer'] || 'Not Ready')}</select>
+              <label>Transfer to Tracker
+                <select class="edit-field" data-field="Transfer to Tracker">${biancaOptionsHtml(r['Transfer to Tracker'] || 'Not Ready')}</select>
               </label>
             </div>
             ${scriptToolsHtml(r)}
