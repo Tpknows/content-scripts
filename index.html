@@ -52,9 +52,9 @@ body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui
 }
 .topbar .mark{
   width:34px; height:34px; border-radius:8px; flex-shrink:0;
-  background:linear-gradient(135deg,var(--green) 0%, var(--green-deep) 100%);
+  background:var(--green);
   display:flex; align-items:center; justify-content:center;
-  color:#fff; font-weight:800; font-size:15px; font-family:var(--font-mono);
+  color:#0b0b0b; font-weight:800; font-size:15px; font-family:var(--font-mono);
 }
 .topbar .titles{flex:1; min-width:0;}
 .topbar h1{margin:0; font-size:16px; font-weight:800; letter-spacing:-.01em;}
@@ -138,7 +138,7 @@ body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui
 .pill.active{background:var(--green); border-color:var(--green); color:#fff;}
 
 .side-heading{
-  font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3);
+  font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3);
   font-family:var(--font-mono); margin:0 0 8px; padding-top:2px;
 }
 .pillar-list{display:flex; flex-direction:column; gap:3px; margin-bottom:18px;}
@@ -151,7 +151,7 @@ body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui
 .pillar-row.active{background:var(--green-soft); border-color:var(--green);}
 .pillar-row .row1{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
 .pillar-row .pname{font-size:12.5px; font-weight:700; color:var(--ink);}
-.pillar-row .pcount{font-size:10.5px; color:var(--ink-3); font-family:var(--font-mono); flex-shrink:0;}
+.pillar-row .pcount{font-size:11px; color:var(--ink-3); font-family:var(--font-mono); flex-shrink:0;}
 .pillar-row .pbar{height:4px; border-radius:3px; background:var(--surface-3); overflow:hidden;}
 .pillar-row .pbar-fill{height:100%; background:var(--green); border-radius:3px;}
 
@@ -190,17 +190,17 @@ h2.pillar-head:first-child{margin-top:0;}
 .plus::before{content:"+";}
 
 .tag{
-  display:inline-block; padding:2px 9px; border-radius:20px; font-size:10px; font-weight:700;
+  display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700;
   text-transform:uppercase; letter-spacing:.03em; font-family:var(--font-mono);
 }
 .tag.status-draft{background:rgba(154,107,12,.14); color:var(--amber);}
 .tag.status-approved{background:var(--green-soft); color:var(--green-dk);}
 .tag.status-published{background:rgba(44,107,158,.14); color:var(--blue);}
-.date-tag{font-size:10.5px; color:var(--ink-3); font-family:var(--font-mono); white-space:nowrap;}
+.date-tag{font-size:11px; color:var(--ink-3); font-family:var(--font-mono); white-space:nowrap;}
 
 .produced-badge{
   display:inline-flex; align-items:center; gap:4px;
-  font-family:var(--font-mono); font-size:10px; font-weight:600; white-space:nowrap;
+  font-family:var(--font-mono); font-size:11px; font-weight:600; white-space:nowrap;
   padding:2px 8px; border-radius:20px; border:1px solid var(--line);
 }
 .produced-badge.is-no{color:var(--ink-3); background:var(--surface-2);}
@@ -208,7 +208,7 @@ h2.pillar-head:first-child{margin-top:0;}
 
 .script-card .body{padding:2px 16px 18px;}
 .edit-row{display:flex; flex-wrap:wrap; gap:14px; padding:10px 12px; margin:8px 0 4px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px;}
-.edit-row label{display:flex; flex-direction:column; gap:3px; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-family:var(--font-mono);}
+.edit-row label{display:flex; flex-direction:column; gap:3px; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-family:var(--font-mono);}
 .edit-row select{
   padding:6px 8px; border:1px solid var(--line); border-radius:6px;
   background:var(--surface); color:var(--ink); font-family:var(--font-ui); font-size:12.5px;
@@ -219,8 +219,8 @@ h2.pillar-head:first-child{margin-top:0;}
 .phase.p-solution{border-color:var(--seg-solution);}
 .phase.p-outro{border-color:var(--seg-outro);}
 .phase-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px;}
-.phase-label{font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--ink-2);}
-.phase-time{font-size:10px; color:var(--ink-3); font-family:var(--font-mono);}
+.phase-label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--ink-2);}
+.phase-time{font-size:11px; color:var(--ink-3); font-family:var(--font-mono);}
 .phase-text{margin:0; font-size:13.5px; white-space:pre-wrap; color:var(--ink);}
 
 h3.seg{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); font-family:var(--font-mono); margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--line);}
@@ -233,7 +233,7 @@ h3.seg{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var
 
 .broll-panel{border:1px solid var(--line); border-radius:8px; padding:10px 13px; margin-bottom:8px;}
 .broll-panel:last-child{margin-bottom:0;}
-.broll-label{font-family:var(--font-mono); font-size:10.5px; font-weight:700; color:var(--green-dk); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;}
+.broll-label{font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--green-dk); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;}
 .broll-text{margin:0; font-size:13px; color:var(--ink-2);}
 
 .caption-box{background:var(--surface-2); border-radius:8px; padding:11px 14px; font-size:13.5px; font-style:italic; color:var(--ink-2);}
@@ -241,7 +241,7 @@ h3.seg{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var
 .thumb-box{border:1px solid var(--line); border-radius:8px; overflow:hidden;}
 .thumb-row{display:flex; gap:12px; padding:8px 13px; font-size:13px;}
 .thumb-row:nth-child(odd){background:var(--surface-2);}
-.thumb-key{font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); width:100px; flex-shrink:0; text-transform:uppercase; letter-spacing:.03em; padding-top:1px;}
+.thumb-key{font-family:var(--font-mono); font-size:11px; color:var(--ink-3); width:100px; flex-shrink:0; text-transform:uppercase; letter-spacing:.03em; padding-top:1px;}
 .thumb-val{color:var(--ink);}
 
 footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:11.5px; color:var(--ink-3); font-family:var(--font-mono);}
@@ -291,7 +291,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 .hook-screen-line{margin:8px 0 0; font-size:13.5px;}
 .hook-sfx-line{margin:8px 0 0; font-size:13px; color:var(--ink-2);}
 .hp-sfx{font-size:12.5px; color:var(--ink-2); line-height:1.5; margin:-4px 0 11px;}
-.hp-sfx-label{display:inline-block; font-size:10px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--green-dk); font-weight:700; margin-right:6px;}
+.hp-sfx-label{display:inline-block; font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.05em; color:var(--green-dk); font-weight:700; margin-right:6px;}
 .hook-pending{margin:0 0 6px; font-size:12px; color:var(--amber); font-family:var(--font-mono);}
 .hook-opt-line{margin:4px 0; font-size:13px; color:var(--ink-2);}
 .hook-others{margin-top:8px; font-size:12.5px; color:var(--ink-2);}
@@ -386,7 +386,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       </svg>
       <div>
         <div class="ring-num" id="ringNum">0/40</div>
-        <div class="ring-label">Approved + Published<br>this month</div>
+        <div class="ring-label" id="ringLabel">Approved + Published<br>this month</div>
       </div>
     </div>
 
@@ -694,7 +694,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       if (activeMonth !== 'all' && monthKey(x.r['Date Added']) !== activeMonth) return false;
       if (activeDay !== 'all' && dayKey(x.r['Date Added']) !== activeDay) return false;
       if (activeEditFilter !== 'all' && isEdited(x.r) !== (activeEditFilter === 'edited')) return false;
-      if (search && !(x.r.Topic || '').toLowerCase().includes(search)) return false;
+      if (search && !(x.r.Topic || '').toLowerCase().includes(search) && !(x.r.Pillar || '').toLowerCase().includes(search)) return false;
       return true;
     });
 
@@ -715,7 +715,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
     body.innerHTML = shown.map(({ r, h }) => `
       <div class="hp-card ${h.final ? 'done' : ''}" data-topic="${attr(r.Topic)}">
-        <div class="hp-title"><span>${escapeHtml(r.Topic.replace(/\s*\(October\)\s*$/, ''))}</span><span class="summary-meta">${isEdited(r) ? '<span class="produced-badge is-edited">&#9998; Edited</span>' : ''}<span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span></span></div>
+        <div class="hp-title"><span>${escapeHtml(r.Topic.replace(/\s*\((January|February|March|April|May|June|July|August|September|October|November|December)\)\s*$/, ''))}</span><span class="summary-meta">${isEdited(r) ? '<span class="produced-badge is-edited">&#9998; Edited</span>' : ''}<span class="tag ${statusClass(r.Status)}">${escapeHtml(r.Status || 'n/a')}</span></span></div>
         <div class="hp-meta">${escapeHtml(r.Pillar || '')}${h.tone ? ' &middot; Tone: ' + escapeHtml(h.tone) : ''}</div>
         ${h.sfx ? `<div class="hp-sfx"><span class="hp-sfx-label">Sound FX</span>${escapeHtml(h.sfx)}</div>` : ''}
         <div class="hp-opts">
@@ -928,8 +928,12 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     var r=document.documentElement;
     var cur=r.getAttribute('data-theme');
     if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
-    r.setAttribute('data-theme',cur==='dark'?'light':'dark');
+    cur=cur==='dark'?'light':'dark';
+    r.setAttribute('data-theme',cur);
+    try{localStorage.setItem('theme',cur);}catch(e){}
   }
+  // Remember the light/dark choice on this device.
+  try{var savedTheme=localStorage.getItem('theme'); if(savedTheme) document.documentElement.setAttribute('data-theme',savedTheme);}catch(e){}
 
   function setStatus(msg, isError){
     const el = document.getElementById('statusLine');
@@ -969,7 +973,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
   function escapeHtml(str){
     return (str || '').toString()
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      // quotes too: this is also used inside attributes (data-topic, value)
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
 
   function matchesFilter(row){
@@ -1066,8 +1072,13 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     // per-pillar count = Approved + Published rows for that pillar, out of its target
     const wrap = document.getElementById('pillarList');
     const pillars = Object.keys(PILLAR_TARGETS);
+    // Targets are monthly, so count one month only: the Month filter if one
+    // is picked, otherwise the current month (Manila). Same Date Added rule
+    // as the Monthly Report tab.
+    const m = activeMonth !== 'all' ? activeMonth : monthKey(new Date().toISOString());
+    const monthRows = allRows.filter(r => monthKey(r['Date Added']) === m);
     wrap.innerHTML = pillars.map(p => {
-      const count = allRows.filter(r => r.Pillar === p && (r.Status === 'Approved' || r.Status === 'Published')).length;
+      const count = monthRows.filter(r => r.Pillar === p && (r.Status === 'Approved' || r.Status === 'Published')).length;
       const target = PILLAR_TARGETS[p];
       const pct = target ? Math.min(100, Math.round((count / target) * 100)) : 0;
       return `
@@ -1084,7 +1095,8 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       });
     });
 
-    const progressCount = allRows.filter(r => (r.Status === 'Approved' || r.Status === 'Published')).length;
+    const progressCount = monthRows.filter(r => (r.Status === 'Approved' || r.Status === 'Published')).length;
+    document.getElementById('ringLabel').innerHTML = 'Approved + Published<br>' + monthLabel(m);
     const pct = Math.min(100, (progressCount / MONTHLY_TARGET) * 100);
     const circumference = 144.5;
     document.getElementById('ringFill').style.strokeDashoffset = circumference - (circumference * pct / 100);
@@ -1248,6 +1260,7 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
   const comparingScript = new Set();
   const openScriptView = new Set();
   const scriptDrafts = {};
+  const savingScript = new Set();
 
   function splitSource(text){
     const s = (text || '').toString();
@@ -1384,7 +1397,16 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     }
     if (fields['Outro CTA'] !== undefined && !/follow us for more tech tips and updates/i.test(fields['Outro CTA'])
         && !confirm('The Outro no longer ends with the standard "Don\'t forget to follow us..." line. Save anyway?')) return;
+    if (savingScript.has(topic)) return; // double click
+    savingScript.add(topic);
     try {
+      // Someone else may have edited this script since the page loaded; the
+      // save would silently overwrite them, so check the live sheet first.
+      // shortcut: check-then-save is not atomic, move the check into Code.gs if two people often edit at once
+      const fresh = (await (await fetch(API_URL, { cache: 'no-store' })).json());
+      const live = Array.isArray(fresh) && fresh.find(r => r.Topic === topic);
+      if (live && SCRIPT_FIELDS.some(f => (live[f] || '') !== (row[f] || ''))
+          && !confirm('Someone else changed this script while you were editing. Saving now will replace their changes. Save anyway?')) return;
       const result = await postJSON({ action: 'editScript', topic, fields });
       if (result.error) { alert(scriptBackendMsg(result.error)); return; }
       SCRIPT_FIELDS.forEach(f => { if (result.fields && typeof result.fields[f] === 'string') row[f] = result.fields[f]; });
@@ -1395,6 +1417,8 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
       renderEditFilterPills(); render(); renderHookPicker();
     } catch (err) {
       alert('Could not reach the server: ' + err.message);
+    } finally {
+      savingScript.delete(topic);
     }
   }
 
