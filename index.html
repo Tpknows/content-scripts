@@ -6,7 +6,7 @@
 <title>EasyPC Script Library</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --green:#62B134; --green-dk:#4d8c29; --green-deep:#345c1e; --green-soft:rgba(98,177,52,.10);
@@ -15,7 +15,7 @@
   --line:#dcded8; --line-strong:#c7cabf;
   --amber:#9a6b0c; --blue:#2c6b9e; --red:#b3402f;
   --seg-hook:#62B134; --seg-problem:#b8632b; --seg-solution:#6b7166; --seg-outro:#2c6b9e;
-  --font-ui:'Open Sans',sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --font-ui:'Open Sans',sans-serif; --font-mono:'Open Sans',sans-serif;
   --radius:10px;
 }
 @media (prefers-color-scheme:dark){
@@ -118,8 +118,9 @@ body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
   padding:14px; margin-bottom:18px;
 }
-.ring-card svg{flex-shrink:0; transform:rotate(-90deg);}
-.ring-card .ring-fill{transition:stroke-dashoffset .5s ease;}
+.ring-card{flex-direction:column; align-items:stretch; gap:8px;}
+.ring-track{height:10px; border-radius:999px; background:var(--surface-3); overflow:hidden;}
+.ring-fill{height:100%; width:0; background:var(--green); border-radius:999px; transition:width .5s ease;}
 .ring-num{font-family:var(--font-mono); font-size:19px; font-weight:700;}
 .ring-label{font-size:11px; color:var(--ink-3); line-height:1.4; margin-top:2px;}
 
@@ -135,7 +136,7 @@ body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-ui
   cursor:pointer; font-family:var(--font-ui);
 }
 .pill:hover{border-color:var(--line-strong);}
-.pill.active{background:var(--green); border-color:var(--green); color:#fff;}
+.pill.active{background:var(--green); border-color:var(--green); color:#0b0b0b;}
 
 .side-heading{
   font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3);
@@ -213,11 +214,12 @@ h2.pillar-head:first-child{margin-top:0;}
   padding:6px 8px; border:1px solid var(--line); border-radius:6px;
   background:var(--surface); color:var(--ink); font-family:var(--font-ui); font-size:12.5px;
 }
-.phase{border-left:3px solid var(--line); border-radius:0 6px 6px 0; padding:9px 13px; margin:10px 0; background:var(--surface-2);}
-.phase.p-hook{border-color:var(--seg-hook);}
-.phase.p-problem{border-color:var(--seg-problem);}
-.phase.p-solution{border-color:var(--seg-solution);}
-.phase.p-outro{border-color:var(--seg-outro);}
+.phase{border:1px solid var(--line); border-radius:8px; padding:10px 13px; margin:10px 0; background:var(--bg);}
+.phase-label::before{content:""; display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:7px; background:var(--line-strong);}
+.phase.p-hook .phase-label::before{background:var(--seg-hook);}
+.phase.p-problem .phase-label::before{background:var(--seg-problem);}
+.phase.p-solution .phase-label::before{background:var(--seg-solution);}
+.phase.p-outro .phase-label::before{background:var(--seg-outro);}
 .phase-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px;}
 .phase-label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; font-weight:700; color:var(--ink-2);}
 .phase-time{font-size:11px; color:var(--ink-3); font-family:var(--font-mono);}
@@ -380,14 +382,9 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
 
   <aside class="sidebar">
     <div class="ring-card">
-      <svg width="56" height="56" viewBox="0 0 56 56">
-        <circle cx="28" cy="28" r="23" fill="none" stroke="var(--surface-3)" stroke-width="5"/>
-        <circle id="ringFill" class="ring-fill" cx="28" cy="28" r="23" fill="none" stroke="var(--green)" stroke-width="5" stroke-linecap="round" stroke-dasharray="144.5" stroke-dashoffset="144.5"/>
-      </svg>
-      <div>
-        <div class="ring-num" id="ringNum">0/40</div>
-        <div class="ring-label" id="ringLabel">Approved + Published<br>this month</div>
-      </div>
+      <div class="ring-label" id="ringLabel">Approved + Published · this month</div>
+      <div class="ring-num" id="ringNum">0/40</div>
+      <div class="ring-track" role="img" aria-label="Progress toward the monthly target"><div class="ring-fill" id="ringFill"></div></div>
     </div>
 
     <input type="search" id="searchBox" class="side-search" placeholder="Search topics..." oninput="searchText = this.value; refreshViews();">
@@ -1096,11 +1093,10 @@ footer.foot{max-width:1280px; margin:0 auto; padding:20px 24px 40px; font-size:1
     });
 
     const progressCount = monthRows.filter(r => (r.Status === 'Approved' || r.Status === 'Published')).length;
-    document.getElementById('ringLabel').innerHTML = 'Approved + Published<br>' + monthLabel(m);
+    document.getElementById('ringLabel').textContent = 'Approved + Published · ' + monthLabel(m);
     const pct = Math.min(100, (progressCount / MONTHLY_TARGET) * 100);
-    const circumference = 144.5;
-    document.getElementById('ringFill').style.strokeDashoffset = circumference - (circumference * pct / 100);
-    document.getElementById('ringNum').textContent = progressCount + '/' + MONTHLY_TARGET;
+    document.getElementById('ringFill').style.width = pct + '%';
+    document.getElementById('ringNum').textContent = progressCount + ' of ' + MONTHLY_TARGET;
   }
 
   function parseShotlist(text){
